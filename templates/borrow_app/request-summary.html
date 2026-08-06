@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">ตรวจสอบข้อมูลคำร้อง</h2>
+        <p class="text-gray-500 text-sm mt-1">กรุณาตรวจสอบความถูกต้องของข้อมูลก่อนทำการส่งคำร้องยืมอุปกรณ์</p>
+    </div>
+
+    <!-- PROGRESS STEPPER -->
+    <div class="w-full max-w-3xl mx-auto mb-10 mt-4">
+        <div class="relative flex justify-between items-center">
+            <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-gray-200 -z-10 rounded-full"></div>
+            <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-2/3 h-1 bg-[#9e1b32] -z-10 rounded-full transition-all duration-500"></div>
+
+            <!-- Step 1 -->
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 bg-[#9e1b32] text-white rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50 shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <div class="absolute top-12 text-center w-32 -ml-16 left-1/2 text-sm font-bold text-gray-700">เลือกอุปกรณ์</div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 bg-[#9e1b32] text-white rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50 shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <div class="absolute top-12 text-center w-32 -ml-16 left-1/2 text-sm font-bold text-gray-700">ระบุรายละเอียด</div>
+            </div>
+
+            <!-- Step 3 (Active) -->
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 bg-[#9e1b32] text-white rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50 shadow-[0_0_15px_rgba(158,27,50,0.6)]">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div class="absolute top-12 text-center w-32 -ml-16 left-1/2 text-sm font-bold text-[#9e1b32]">ตรวจสอบข้อมูล</div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 bg-white border-2 border-gray-300 text-gray-400 rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <div class="absolute top-12 text-center w-32 -ml-16 left-1/2 text-sm font-medium text-gray-400">ยืนยันการยืม</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- เอกสารสรุปข้อมูลคำร้อง -->
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-200 mb-12">
+        
+        <!-- Header ใบคำร้อง -->
+        <div class="flex justify-between items-start border-b border-gray-200 pb-4 mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-gray-800">ตรวจสอบข้อมูลคำร้อง</h3>
+                <p class="text-xs text-gray-400 mt-1">SWU Equipment Borrowing Request Form</p>
+            </div>
+            <div class="text-right text-xs text-gray-500">
+                <p>วันที่ทำรายการ: <strong class="text-gray-700">{{ today_date }}</strong></p>
+            </div>
+        </div>
+
+        <!-- ข้อมูลผู้ขอยืม -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-y-3 text-sm mb-6 pb-6 border-b border-gray-100">
+            <div>
+                <span class="text-gray-500">ข้าพเจ้า ชื่อ - นามสกุล:</span>
+                <strong class="text-gray-800 ml-2">{{ request.user.first_name }} {{ request.user.last_name|default:request.user.username }}</strong>
+            </div>
+            <div>
+                <span class="text-gray-500">สังกัด / คณะ:</span>
+                <strong class="text-gray-800 ml-2">มหาวิทยาลัยศรีนครินทรวิโรฒ</strong>
+            </div>
+        </div>
+
+        <!-- รายการอุปกรณ์ -->
+        <div class="mb-6 pb-6 border-b border-gray-100">
+            <h4 class="font-bold text-gray-800 text-sm mb-3">มีความประสงค์ขอยืมพัสดุ อุปกรณ์/ครุภัณฑ์ ดังนี้</h4>
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <ul class="space-y-2 text-sm">
+                    {% for item in cart_items %}
+                    <li class="flex justify-between items-center text-gray-700">
+                        <span class="flex items-center">
+                            <span class="w-2 h-2 bg-[#9e1b32] rounded-full mr-3"></span>
+                            <strong>{{ item.name }}</strong>
+                            <span class="text-xs text-gray-400 ml-2">({{ item.type }})</span>
+                        </span>
+                        <span>จำนวน <strong class="text-gray-900">{{ item.qty }}</strong> ชิ้น/ชุด</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- รายละเอียดการยืม -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6 text-sm mb-8 pb-6 border-b border-gray-100">
+            <div class="md:col-span-2">
+                <span class="text-gray-500">วัตถุประสงค์เพื่อการใช้งาน:</span>
+                <p class="font-medium text-gray-800 mt-1 bg-gray-50 p-3 rounded-lg border border-gray-100">{{ details.purpose }}</p>
+            </div>
+            <div>
+                <span class="text-gray-500">วันที่/เวลา ยืม:</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ details.start_datetime }}</p>
+            </div>
+            <div>
+                <span class="text-gray-500">สถานที่นำไปใช้:</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ details.location }}</p>
+            </div>
+            <div>
+                <span class="text-gray-500">กำหนดส่งคืนวันที่:</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ details.end_datetime }}</p>
+            </div>
+            <div>
+                <span class="text-gray-500">ประเภทการรับ-ส่งคืน:</span>
+                <p class="font-semibold text-[#9e1b32] mt-0.5">{{ details.pickup_method }}</p>
+            </div>
+        </div>
+
+        <!-- ข้อชี้แจง & ลายเซ็น -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end mb-8 text-xs text-gray-500">
+            <div>
+                <h5 class="font-bold text-gray-700 mb-1">ข้อชี้แจง</h5>
+                <ol class="list-decimal list-inside space-y-1 leading-relaxed">
+                    <li>กรณีวัสดุ/อุปกรณ์ที่ขอยืมชำรุด ผู้ยืมยินดีชำระค่าซ่อมตามราคาจริง</li>
+                    <li>กรณีวัสดุ/อุปกรณ์ที่ขอยืมสูญหาย ผู้ยืมยินดีชดใช้ตามราคาจริง</li>
+                </ol>
+            </div>
+            <div class="text-right space-y-2 pt-4 md:pt-0">
+                <p>ลงชื่อผู้ขอยืม ...........................................................</p>
+                <p>ลายเซ็น ( {{ request.user.username }} )</p>
+                <p>วันที่ {{ today_date }}</p>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200">
+            <a href="{% url 'borrow_app:request_form' %}" class="px-6 py-2.5 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition-colors text-sm">
+                ย้อนกลับ
+            </a>
+            
+            <form action="{% url 'borrow_app:confirm_request' %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="px-6 py-2.5 bg-[#9e1b32] text-white font-bold rounded-lg hover:bg-[#7a1527] transition-colors shadow-md text-sm flex items-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    <span>ส่งคำร้อง</span>
+                </button>
+            </form>
+        </div>
+
+    </div>
+{% endblock %}

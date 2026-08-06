@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWU Equipment System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/lucide.min.js"></script>
+</head>
+<body class="bg-gray-200 font-sans min-h-screen flex flex-col">
+
+    <!-- 1. Header / Top Navbar (แถบบนสุด) -->
+    <header class="bg-[#9e1b32] text-white px-4 py-3 flex justify-between items-center shadow-md sticky top-0 z-40">
+        <div class="flex items-center space-x-6">
+            
+            <!-- 🍔 ปุ่ม Hamburger Menu -->
+            <button id="toggle-sidebar" class="p-1.5 rounded-lg hover:bg-white/10 transition-colors focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+
+            <!-- Logo & Title -->
+            <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center font-bold text-[#9e1b32] text-xs shadow-sm">มศว</div>
+            <div>
+                <p class="text-[10px] text-red-200 uppercase tracking-wider font-semibold">SRINAKHARINWIROT UNIVERSITY</p>
+                <h1 class="text-sm font-bold leading-none">ระบบยืม-คืนอุปกรณ์ และครุภัณฑ์ส่วนกลาง (SWU ERP)</h1>
+            </div>
+        </div>
+        
+        <!-- User Badge & Logout -->
+        <div class="flex items-center space-x-4 text-xs">
+            <span>Buasri ID: <strong class="font-bold">{{ request.user.username }}</strong></span>
+            <span class="bg-green-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
+                {% if request.user.is_staff or request.user.is_superuser %} Admin {% else %} User {% endif %}
+            </span>
+            <a href="{% url 'borrow_app:logout' %}" class="border border-white/40 hover:bg-white/10 px-3 py-1.5 rounded-lg flex items-center space-x-1 transition">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                <span>ออกจากระบบ</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- 2. Main Wrapper -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- 👈 Sidebar (สลับชุดเมนูตามสิทธิ์การใช้งาน) -->
+        <aside id="sidebar" class="w-64 bg-white border-r border-gray-200 flex flex-col justify-between p-4 flex-shrink-0 min-h-[calc(100vh-57px)] transition-all duration-300 ease-in-out">
+            <div>
+                {% if request.user.is_staff or request.user.is_superuser %}
+                    <!-- 🛡️ เมนูฝั่งผู้ดูแลระบบ (ADMIN) -->
+                    <div class="text-[11px] font-bold text-[#9e1b32] uppercase tracking-wider px-3 mb-2 flex items-center justify-between">
+                        <span>เมนูผู้ดูแลระบบ</span>
+                        <span class="bg-red-100 text-[#9e1b32] text-[10px] px-1.5 py-0.5 rounded font-bold">ADMIN</span>
+                    </div>
+
+                    <nav class="space-y-1">
+                        <a href="{% url 'borrow_app:admin_dashboard' %}" class="flex items-center px-3 py-2 text-sm font-semibold text-gray-700 rounded-lg hover:bg-red-50 hover:text-[#9e1b32] transition-colors">
+                            <svg class="w-5 h-5 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                            Dashboard
+                        </a>
+
+                        <a href="{% url 'borrow_app:admin_manage_requests' %}" class="flex items-center px-3 py-2 text-sm font-semibold text-gray-700 rounded-lg hover:bg-red-50 hover:text-[#9e1b32] transition-colors">
+                            <svg class="w-5 h-5 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            จัดการคำร้อง
+                        </a>
+
+                        <a href="{% url 'borrow_app:admin_manual_request' %}" class="flex items-center px-3 py-2 text-sm font-semibold text-gray-700 rounded-lg hover:bg-red-50 hover:text-[#9e1b32] transition-colors">
+                            <svg class="w-5 h-5 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            ยื่นคำร้องเอง
+                        </a>
+
+                        <a href="{% url 'borrow_app:admin_all_history' %}" class="flex items-center px-3 py-2 text-sm font-semibold text-gray-700 rounded-lg hover:bg-red-50 hover:text-[#9e1b32] transition-colors">
+                            <svg class="w-5 h-5 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            รายการประวัติทั้งหมด
+                        </a>
+
+                        <a href="{% url 'borrow_app:equipment_manage' %}" class="flex items-center px-3 py-2 text-sm font-semibold text-gray-700 rounded-lg hover:bg-red-50 hover:text-[#9e1b32] transition-colors">
+                            <svg class="w-5 h-5 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                            จัดการคลังอุปกรณ์
+                        </a>
+                    </nav>
+
+                {% else %}
+                    <!-- 👤 เมนูฝั่งผู้ใช้งานทั่วไป (USER) -->
+                    <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-3 mb-2">
+                        เมนูผู้ใช้งาน
+                    </div>
+
+                    <nav class="space-y-1">
+                        <a href="{% url 'borrow_app:home' %}" class="flex items-center px-3 py-2 text-sm font-semibold text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                            <svg class="w-5 h-5 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 00-1 1m-6 0h6"></path></svg>
+                            รายการ/อุปกรณ์
+                        </a>
+
+                        <a href="{% url 'borrow_app:my_requests' %}" class="flex items-center px-3 py-2 text-sm font-semibold text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                            <svg class="w-5 h-5 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            สถานะคำร้องยืมปัจจุบัน
+                        </a>
+
+                        <a href="{% url 'borrow_app:history' %}" class="flex items-center px-3 py-2 text-sm font-semibold text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                            <svg class="w-5 h-5 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            ประวัติการใช้งาน
+                        </a>
+                    </nav>
+                {% endif %}
+            </div>
+
+            <!-- Profile Info ด้านล่าง Sidebar -->
+            <div class="border-t border-gray-200 pt-4 mt-auto">
+                <div class="flex items-center justify-between px-2">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-[#9e1b32] text-white flex items-center justify-center font-bold text-xs">
+                            {{ request.user.username|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-gray-800 leading-tight">{{ request.user.username }}</p>
+                            <p class="text-[10px] text-gray-400">
+                                {% if request.user.is_staff or request.user.is_superuser %} Administrator {% else %} General User {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{% url 'borrow_app:logout' %}" class="text-gray-400 hover:text-red-600 text-xs font-medium">
+                        Log out
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 👉 Content Area (ฝั่งขวา) -->
+        <main class="flex-1 p-6 overflow-y-auto">
+            {% block content %}
+            {% endblock %}
+        </main>
+
+    </div>
+
+    <!-- ⚡ JavaScript สำหรับสลับการแสดงผล Sidebar -->
+    <script>
+        const toggleBtn = document.getElementById('toggle-sidebar');
+        const sidebar = document.getElementById('sidebar');
+
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('-ml-64');
+        });
+    </script>
+    <script>document.addEventListener('DOMContentLoaded', () => lucide && lucide.replace());</script>
+</body>
+</html>

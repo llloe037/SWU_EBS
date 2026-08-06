@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+    <h2 class="text-xl font-bold text-gray-800">📝 จัดการคำร้องขอยืมอุปกรณ์</h2>
+
+    {% if selected_status == 'all' %}
+    <!-- Full overview table for 'all' -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100">
+            <h3 class="text-lg font-bold text-gray-800">ประวัติการยืมของทุก User</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-gray-50 text-gray-500 uppercase font-semibold border-b">
+                    <tr>
+                        <th class="p-4">เลขที่คำร้อง</th>
+                        <th class="p-4">ผู้ขอยืม</th>
+                        <th class="p-4">รายการอุปกรณ์</th>
+                        <th class="p-4">วันที่ยืม</th>
+                        <th class="p-4">สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+                    {% for req in all_requests %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="p-4 font-mono font-medium text-slate-900">{{ req.request_number }}</td>
+                        <td class="p-4 font-medium text-slate-800">{{ req.user.username }}</td>
+                        <td class="p-4 text-gray-600">{{ req.items_summary }}</td>
+                        <td class="p-4 text-gray-600">{{ req.created_at|date:"Y-m-d" }}</td>
+                        <td class="p-4"><span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">{{ req.status }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-gray-400">ไม่มีคำร้องในระบบ</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="grid gap-6">
+        {% if selected_status == 'all' or not selected_status or selected_status == 'รอการอนุมัติ' %}
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800">คำร้องรออนุมัติ</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-gray-100 text-gray-500 uppercase font-semibold border-b">
+                        <tr>
+                            <th class="p-3">เลขที่คำร้อง</th>
+                            <th class="p-3">ผู้ขอยืม</th>
+                            <th class="p-3">รายการอุปกรณ์</th>
+                            <th class="p-3">วัตถุประสงค์</th>
+                            <th class="p-3">วันที่ยืม - กำหนดส่ง</th>
+                            <th class="p-3 text-center">การอนุมัติ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for req in requests_list %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-3 font-bold text-gray-800">{{ req.request_number }}</td>
+                            <td class="p-3">{{ req.user.username }}</td>
+                            <td class="p-3">{{ req.items_summary }}</td>
+                            <td class="p-3">{{ req.purpose }}</td>
+                            <td class="p-3">{{ req.start_datetime }} - {{ req.end_datetime }}</td>
+                            <td class="p-3 text-center">
+                                <form method="POST" class="inline-flex gap-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="request_id" value="{{ req.id }}">
+                                    <button type="submit" name="action" value="approve" class="px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 font-bold">
+                                        อนุมัติ
+                                    </button>
+                                    <button type="submit" name="action" value="reject" class="px-3 py-1 bg-rose-600 text-white rounded hover:bg-rose-700 font-bold">
+                                        ไม่อนุมัติ
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="p-6 text-center text-gray-400">ไม่มีคำร้องที่รอการพิจารณา</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not selected_status or selected_status == 'อนุมัติ' or selected_status == 'all' %}
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800">คำร้องที่อนุมัติ</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-gray-100 text-gray-500 uppercase font-semibold border-b">
+                        <tr>
+                            <th class="p-3">เลขที่คำร้อง</th>
+                            <th class="p-3">ผู้ขอยืม</th>
+                            <th class="p-3">รายการอุปกรณ์</th>
+                            <th class="p-3">วันที่ยืม - กำหนดส่ง</th>
+                            <th class="p-3">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for req in active_requests %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-3 font-bold text-gray-800">{{ req.request_number }}</td>
+                            <td class="p-3">{{ req.user.username }}</td>
+                            <td class="p-3">{{ req.items_summary }}</td>
+                            <td class="p-3">{{ req.start_datetime }} - {{ req.end_datetime }}</td>
+                            <td class="p-3">{{ req.status }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="p-6 text-center text-gray-400">ไม่มีคำร้องที่อนุมัติ</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% endif %}
+
+        {% if selected_status == 'all' or not selected_status or selected_status == 'รอตรวจสอบการคืน' %}
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-gray-100">
+                <h3 class="text-lg font-bold text-gray-800">คำขอคืนรอตรวจสอบ</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-gray-100 text-gray-500 uppercase font-semibold border-b">
+                        <tr>
+                            <th class="p-3">เลขที่คำร้อง</th>
+                            <th class="p-3">ผู้ขอยืม</th>
+                            <th class="p-3">รายการอุปกรณ์</th>
+                            <th class="p-3">วันที่ยืม - กำหนดส่ง</th>
+                            <th class="p-3">หมายเหตุคืน</th>
+                            <th class="p-3 text-center">การตรวจสอบคืน</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for req in return_requests %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-3 font-bold text-gray-800">{{ req.request_number }}</td>
+                            <td class="p-3">{{ req.user.username }}</td>
+                            <td class="p-3">{{ req.items_summary }}</td>
+                            <td class="p-3">{{ req.start_datetime }} - {{ req.end_datetime }}</td>
+                            <td class="p-3 text-sm text-slate-700 break-words">{{ req.return_note|default:'-' }}</td>
+                            <td class="p-3 text-center">
+                                <form method="POST" class="inline-flex gap-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="request_id" value="{{ req.id }}">
+                                    <button type="submit" name="action" value="approve" class="px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 font-bold">
+                                        คืนสำเร็จ
+                                    </button>
+                                    <button type="submit" name="action" value="reject" class="px-3 py-1 bg-amber-500 text-white rounded hover:bg-amber-600 font-bold">
+                                        คืนไม่ครบ
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="p-6 text-center text-gray-400">ไม่มีคำขอคืนรอตรวจสอบ</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

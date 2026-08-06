@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+    <h2 class="text-xl font-bold text-gray-800">📜 ประวัติการยืมของทุก User</h2>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-gray-100 text-gray-500 uppercase font-semibold border-b">
+                    <tr>
+                        <th class="p-3">เลขที่คำร้อง</th>
+                        <th class="p-3">ผู้ขอยืม</th>
+                        <th class="p-3">รายการอุปกรณ์</th>
+                        <th class="p-3">วันที่ยืม</th>
+                        <th class="p-3">สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for req in requests_list %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3 font-bold text-gray-800">{{ req.request_number }}</td>
+                        <td class="p-3">{{ req.user.username }}</td>
+                        <td class="p-3">{{ req.items_summary }}</td>
+                        <td class="p-3">{{ req.start_datetime }}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-1 rounded text-[10px] font-bold border {{ req.badge_style }}">
+                                {{ req.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="p-6 text-center text-gray-400">ยังไม่มีประวัติในระบบ</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

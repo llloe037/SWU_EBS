@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-bold text-gray-800">📊 Dashboard ภาพรวมระบบ</h2>
+            <p class="text-xs text-gray-500 mt-0.5">ภาพรวมสถานะการยืม-คืน และคลังอุปกรณ์ทั้งหมด</p>
+        </div>
+        <span class="text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full font-medium">ข้อมูลอัปเดตแบบ Real-time</span>
+    </div>
+
+    <!-- Section 1: สรุปคำร้องที่ Admin ต้องจัดการ (4 Columns) -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- คำร้องรอการอนุมัติ -->
+        <a href="{% url 'borrow_app:admin_manage_requests' %}?status=รอการอนุมัติ" class="block bg-amber-50/80 border border-amber-200 p-5 rounded-xl flex items-center justify-between shadow-sm hover:border-amber-300 transition">
+            <div>
+                <span class="text-[11px] font-bold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">ต้องดำเนินการ</span>
+                <p class="text-xs font-semibold text-gray-600 mt-2">คำร้องรอการอนุมัติ</p>
+                <h3 class="text-2xl font-black text-amber-900 mt-0.5">{{ pending_count }} <span class="text-xs font-normal text-gray-500">รายการ</span></h3>
+            </div>
+            <div class="w-12 h-12 bg-amber-500 text-white rounded-xl flex items-center justify-center text-xl shadow-sm">
+                ⏳
+            </div>
+        </a>
+
+        <!-- คำขอคืนรอตรวจสอบ -->
+        <a href="{% url 'borrow_app:admin_manage_requests' %}?status=รอตรวจสอบการคืน" class="block bg-sky-50/80 border border-sky-200 p-5 rounded-xl flex items-center justify-between shadow-sm hover:border-sky-300 transition">
+            <div>
+                <span class="text-[11px] font-bold text-sky-700 bg-sky-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">รอตรวจสอบคืน</span>
+                <p class="text-xs font-semibold text-gray-600 mt-2">คำขอคืนรอตรวจสอบ</p>
+                <h3 class="text-2xl font-black text-sky-900 mt-0.5">{{ return_pending_count }} <span class="text-xs font-normal text-gray-500">รายการ</span></h3>
+            </div>
+            <div class="w-12 h-12 bg-sky-500 text-white rounded-xl flex items-center justify-center text-xl shadow-sm">
+                🔄
+            </div>
+        </a>
+
+        <!-- กำลังถูกยืมอยู่ -->
+        <a href="{% url 'borrow_app:admin_manage_requests' %}?status=อนุมัติ" class="block bg-emerald-50/80 border border-emerald-200 p-5 rounded-xl flex items-center justify-between shadow-sm hover:border-emerald-300 transition">
+            <div>
+                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">กำลังใช้งาน</span>
+                <p class="text-xs font-semibold text-gray-600 mt-2">กำลังถูกยืมอยู่</p>
+                <h3 class="text-2xl font-black text-emerald-900 mt-0.5">{{ active_count }} <span class="text-xs font-normal text-gray-500">รายการ</span></h3>
+            </div>
+            <div class="w-12 h-12 bg-emerald-500 text-white rounded-xl flex items-center justify-center text-xl shadow-sm">
+                📦
+            </div>
+        </a>
+
+        <!-- จำนวนคำร้องรวม -->
+        <a href="{% url 'borrow_app:admin_manage_requests' %}?status=all" class="block bg-white border border-gray-200 p-5 rounded-xl flex items-center justify-between shadow-sm hover:border-indigo-300 transition">
+            <div>
+                <span class="text-[11px] font-bold text-gray-600 bg-gray-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">ภาพรวม</span>
+                <p class="text-xs font-semibold text-gray-600 mt-2">จำนวนคำร้องทั้งหมด</p>
+                <h3 class="text-2xl font-black text-gray-800 mt-0.5">{{ total_request_count }} <span class="text-xs font-normal text-gray-500">รายการ</span></h3>
+            </div>
+            <div class="w-12 h-12 bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center text-xl">
+                📝
+            </div>
+        </a>
+    </div>
+
+    <!-- Section 2: สรุปสถานะคลังอุปกรณ์ (5 Columns) -->
+    <div>
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">📦 สถานะคลังอุปกรณ์</h3>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <!-- อุปกรณ์ทั้งหมด -->
+            <a href="{% url 'borrow_app:equipment_manage' %}?status=all" class="block bg-white p-4 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-gray-400 hover:border-indigo-300 transition">
+                <p class="text-xs text-gray-500 font-semibold">อุปกรณ์ทั้งหมด</p>
+                <h4 class="text-xl font-extrabold text-gray-800 mt-1">{{ eq_stats.total }} <span class="text-xs font-normal text-gray-400">ชิ้น</span></h4>
+            </a>
+            <!-- พร้อมให้ยืม -->
+            <a href="{% url 'borrow_app:equipment_manage' %}?status=พร้อมให้ยืม" class="block bg-white p-4 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-green-500 hover:border-indigo-300 transition">
+                <p class="text-xs text-gray-500 font-semibold">พร้อมให้ยืม</p>
+                <h4 class="text-xl font-extrabold text-green-600 mt-1">{{ eq_stats.available }} <span class="text-xs font-normal text-gray-400">ชิ้น</span></h4>
+            </a>
+            <!-- กำลังถูกยืม -->
+            <a href="{% url 'borrow_app:equipment_manage' %}?status=กำลังถูกยืม" class="block bg-white p-4 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-blue-500 hover:border-indigo-300 transition">
+                <p class="text-xs text-gray-500 font-semibold">กำลังถูกยืม</p>
+                <h4 class="text-xl font-extrabold text-blue-600 mt-1">{{ eq_stats.borrowed }} <span class="text-xs font-normal text-gray-400">ชิ้น</span></h4>
+            </a>
+            <!-- อยู่ระหว่างซ่อม -->
+            <a href="{% url 'borrow_app:equipment_manage' %}?status=อยู่ระหว่างซ่อม" class="block bg-white p-4 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-yellow-500 hover:border-indigo-300 transition">
+                <p class="text-xs text-gray-500 font-semibold">อยู่ระหว่างซ่อม</p>
+                <h4 class="text-xl font-extrabold text-yellow-600 mt-1">{{ eq_stats.maintenance }} <span class="text-xs font-normal text-gray-400">ชิ้น</span></h4>
+            </a>
+            <!-- ชำรุด -->
+            <a href="{% url 'borrow_app:equipment_manage' %}?status=ชำรุด" class="block bg-white p-4 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-red-500 hover:border-indigo-300 transition">
+                <p class="text-xs text-gray-500 font-semibold">ชำรุด</p>
+                <h4 class="text-xl font-extrabold text-red-600 mt-1">{{ eq_stats.damaged }} <span class="text-xs font-normal text-gray-400">ชิ้น</span></h4>
+            </a>
+        </div>
+    </div>
+
+    <!-- Section 3: ตารางรายการคำร้องยื่นใหม่ -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="p-4 bg-gray-50/80 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <span>⚡</span> คำร้องรอการอนุมัติตอนนี้
+            </h3>
+            <a href="{% url 'borrow_app:admin_manage_requests' %}" class="text-xs font-medium text-[#9e1b32] hover:underline">
+                ดูทั้งหมด →
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-gray-100/70 text-gray-500 uppercase font-semibold border-b">
+                    <tr>
+                        <th class="p-3">เลขที่คำร้อง</th>
+                        <th class="p-3">ผู้ขอยืม</th>
+                        <th class="p-3">รายการอุปกรณ์</th>
+                        <th class="p-3">วันที่ยืม</th>
+                        <th class="p-3 text-center">การจัดการ</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for req in recent_requests %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="p-3 font-bold text-gray-800">{{ req.request_number }}</td>
+                        <td class="p-3 font-medium text-gray-700">{{ req.user.username }}</td>
+                        <td class="p-3 text-gray-600">{{ req.items_summary }}</td>
+                        <td class="p-3 text-gray-600">{{ req.start_datetime }}</td>
+                        <td class="p-3 text-center">
+                            <a href="{% url 'borrow_app:admin_manage_requests' %}" class="px-3 py-1.5 bg-[#9e1b32] text-white rounded-lg hover:bg-red-800 font-medium transition-all shadow-sm inline-block">
+                                ไปจัดการ
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-gray-400">
+                            <p class="text-sm">🎉 ไม่มีคำร้องที่รอการอนุมัติในขณะนี้</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

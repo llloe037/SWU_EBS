@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-4 space-y-6">
+
+    <!-- 1. หัวข้อหน้า (มุมซ้ายบน) -->
+    <h2 class="text-xl font-bold text-gray-900">ระบุรายละเอียด</h2>
+
+    <!-- 2. Stepper แสดงขั้นตอน (1-4) -->
+    <div class="relative flex items-center justify-between max-w-2xl mx-auto my-8 px-6">
+        <!-- เส้นเชื่อมระหว่างจุด -->
+        <div class="absolute left-10 right-10 top-4 h-[2px] bg-gray-200 -z-0"></div>
+
+        <!-- Step 1 -->
+        <div class="relative z-10 flex flex-col items-center">
+            <div class="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center font-bold text-xs">1</div>
+            <span class="text-xs font-medium text-gray-400 mt-2">เลือกอุปกรณ์</span>
+        </div>
+
+        <!-- Step 2 (Active - ธีมสีแดง) -->
+        <div class="relative z-10 flex flex-col items-center">
+            <div class="w-8 h-8 rounded-full bg-[#9e1b32] text-white flex items-center justify-center font-bold text-xs shadow-sm">2</div>
+            <span class="text-xs font-bold text-gray-900 mt-2">ระบุรายละเอียด</span>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="relative z-10 flex flex-col items-center">
+            <div class="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center font-bold text-xs">3</div>
+            <span class="text-xs font-medium text-gray-400 mt-2">ตรวจสอบข้อมูล</span>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="relative z-10 flex flex-col items-center">
+            <div class="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center font-bold text-xs">4</div>
+            <span class="text-xs font-medium text-gray-400 mt-2">ยืนยันการยืม</span>
+        </div>
+    </div>
+
+    <!-- 3. การ์ดฟอร์มกรอกคำร้อง -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 md:p-12 max-w-4xl mx-auto">
+        <!-- หัวข้อกลางการ์ด -->
+        <h3 class="text-xl font-bold text-gray-900 text-center mb-10">กรอกคำร้อง</h3>
+
+        <form method="POST" class="space-y-6 text-sm">
+            {% csrf_token %}
+
+            <!-- ชื่อ (เปลี่ยนเป็นพิมพ์กรอกเอง) -->
+            <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4">
+                <label class="md:col-span-3 font-semibold text-gray-800">ชื่อ</label>
+                <div class="md:col-span-9">
+                    <input type="text" name="borrower_name" placeholder="กรอกชื่อของคุณ" class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-700 focus:outline-none focus:border-[#9e1b32] focus:ring-1 focus:ring-[#9e1b32] transition" required>
+                </div>
+            </div>
+            <!-- เลือกอุปกรณ์ที่ยืม (ดีไซน์เนียนเข้ากับฟอร์ม) -->
+            <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4">
+                <label class="md:col-span-3 font-semibold text-gray-800">เลือกอุปกรณ์ที่ยืม</label>
+                <div class="md:col-span-9">
+                    <select name="equipment_ids" class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-700 bg-white focus:outline-none focus:border-[#9e1b32] focus:ring-1 focus:ring-[#9e1b32] transition" required>
+                        <option value="" disabled selected>เลือกอุปกรณ์ที่ต้องการยืม</option>
+                        {% for eq in equipments %}
+                           <option value="{{ eq.id }}">{{ eq.name }} {% if eq.code %}({{ eq.code }}){% endif %}</option>
+                        {% empty %}
+                            <option value="" disabled>ไม่มีรายการอุปกรณ์พร้อมใช้งานในระบบ</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- สังกัด -->
+            <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4">
+                <label class="md:col-span-3 font-semibold text-gray-800">สังกัด</label>
+                <div class="md:col-span-9">
+                    <input type="text" name="department" placeholder="กรอกสังกัด / หน่วยงาน" class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-700 focus:outline-none focus:border-[#9e1b32] focus:ring-1 focus:ring-[#9e1b32] transition">
+                </div>
+            </div>
+
+            <!-- วันที่ และ เวลา (เปลี่ยนเป็น Date & Time Picker) -->
+            <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4">
+                <label class="md:col-span-3 font-semibold text-gray-800">วันที่</label>
+                <div class="md:col-span-9 flex flex-col sm:flex-row items-center gap-4">
+                    <div class="relative w-full sm:w-1/2">
+                        <input type="date" name="start_date" class="w-full border border-gray-200 rounded-lg pl-10 pr-3.5 py-2.5 text-gray-700 focus:outline-none focus:border-[#9e1b32] focus:ring-1 focus:ring-[#9e1b32] transition cursor-pointer" required>
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </span>
+                    </div>
+                    <span class="font-semibold text-gray-800 shrink-0">เวลา</span>
+                    <div class="relative w-full sm:w-1/2">
+                        <input type="time" name="start_time" class="w-full border border-gray-200 rounded-lg pl-10 pr-3.5 py-2.5 text-gray-700 focus:outline-none focus:border-[#9e1b32] focus:ring-1 focus:ring-[#9e1b32] transition cursor-pointer">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- สถานที่นำไปใช้ -->
+            <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4">
+                <label class="md:col-span-3 font-semibold text-gray-800">สถานที่นำไปใช้</label>
+                <div class="md:col-span-9">
+                    <input type="text" name="location" placeholder="ระบุสถานที่นำไปใช้งาน" class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-700 focus:outline-none focus:border-[#9e1b32] focus:ring-1 focus:ring-[#9e1b32] transition">
+                </div>
+            </div>
+
+            <!-- วัตถุประสงค์เพื่อการใช้งาน -->
+            <div class="grid grid-cols-1 md:grid-cols-12 items-start gap-4">
+                <label class="md:col-span-3 font-semibold text-gray-800 pt-2">วัตถุประสงค์เพื่อการใช้งาน</label>
+                <div class="md:col-span-9">
+                    <textarea name="purpose" rows="4" placeholder="อธิบายวัตถุประสงค์ในการใช้งาน" class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-700 focus:outline-none focus:border-[#9e1b32] focus:ring-1 focus:ring-[#9e1b32] transition resize-none"></textarea>
+                </div>
+            </div>
+
+            <!-- ประเภทการรับ-ส่งคืน -->
+            <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4">
+                <label class="md:col-span-3 font-semibold text-gray-800">ประเภทการรับ-ส่งคืน</label>
+                <div class="md:col-span-9 flex items-center space-x-8">
+                    <label class="inline-flex items-center space-x-2.5 cursor-pointer">
+                        <input type="checkbox" name="pickup_type" value="self" class="w-4 h-4 rounded border-gray-300 text-[#9e1b32] focus:ring-[#9e1b32]">
+                        <span class="text-gray-800">รับเอง</span>
+                    </label>
+                    <label class="inline-flex items-center space-x-2.5 cursor-pointer">
+                        <input type="checkbox" name="pickup_type" value="install" class="w-4 h-4 rounded border-gray-300 text-[#9e1b32] focus:ring-[#9e1b32]">
+                        <span class="text-gray-800">ต้องการติดตั้ง</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- กำหนดส่งคืนวันที่ (เปลี่ยนเป็น Date Picker) -->
+            <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4">
+                <label class="md:col-span-3 font-semibold text-gray-800">กำหนดส่งคืนวันที่</label>
+                <div class="md:col-span-9">
+                    <div class="relative w-full sm:w-1/2">
+                        <input type="date" name="end_date" class="w-full border border-gray-200 rounded-lg pl-10 pr-3.5 py-2.5 text-gray-700 focus:outline-none focus:border-[#9e1b32] focus:ring-1 focus:ring-[#9e1b32] transition cursor-pointer" required>
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ปุ่มกดย้อนกลับ & ยืนยัน (อยู่ขวาล่าง) -->
+            <div class="pt-8 flex justify-end items-center space-x-3">
+                <a href="{% url 'borrow_app:admin_dashboard' %}" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition">
+                    ย้อนกลับ
+                </a>
+                <button type="submit" class="px-7 py-2.5 bg-[#9e1b32] text-white rounded-lg hover:bg-red-800 font-medium transition flex items-center space-x-1.5 shadow-sm">
+                    <span>ยืนยัน</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 4. Footer Copyright -->
+    <div class="text-center text-xs text-gray-400 pt-6">
+        © 2024 Borrowing Returning System. All rights reserved.
+    </div>
+</div>
+{% endblock %}

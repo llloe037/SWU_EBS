@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">ประวัติการใช้งาน</h2>
+        <p class="text-gray-500 text-sm mt-1">ตรวจสอบประวัติคำขอยืมอุปกรณ์ที่ยกเลิกและคืนสำเร็จแล้วทั้งหมด</p>
+    </div>
+
+    <!-- ส่วน Search และ Filter ตามแบบภาพตัวอย่าง -->
+    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm mb-6">
+        <form method="GET" class="flex flex-wrap gap-3 items-center justify-between text-xs">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" name="search" placeholder="ค้นหาเลขที่คำร้อง, อุปกรณ์, สถานที่..." class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-500">
+            </div>
+            <div>
+                <select name="status" class="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none">
+                    <option value="">สถานะ: ทั้งหมด</option>
+                    <option value="คืนสำเร็จ">คืนสำเร็จ</option>
+                    <option value="ยกเลิก">ยกเลิก</option>
+                    <option value="ไม่อนุมัติ">ไม่อนุมัติ</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="date" name="start_date" class="px-3 py-2 border border-gray-200 rounded-lg">
+                <span>-</span>
+                <input type="date" name="end_date" class="px-3 py-2 border border-gray-200 rounded-lg">
+            </div>
+            <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+                รีเซ็ต
+            </button>
+        </form>
+    </div>
+
+    <!-- ตารางประวัติการใช้งาน -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase">
+                        <th class="py-3.5 px-4">เลขที่คำร้อง</th>
+                        <th class="py-3.5 px-4">วันที่ยืม</th>
+                        <th class="py-3.5 px-4">อุปกรณ์ที่ยืม</th>
+                        <th class="py-3.5 px-4">สถานที่นำไปใช้</th>
+                        <th class="py-3.5 px-4">กำหนดส่งคืน</th>
+                        <th class="py-3.5 px-4 text-center">สถานะ</th>
+                        <th class="py-3.5 px-4 text-center">รายละเอียด</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-xs">
+                    {% for item in requests_list %}
+                    <tr class="hover:bg-gray-50/80 transition-colors">
+                        <td class="py-4 px-4 font-bold text-[#9e1b32]">{{ item.request_number }}</td>
+                        <td class="py-4 px-4 text-gray-700">{{ item.start_datetime }}</td>
+                        <td class="py-4 px-4 font-semibold text-gray-800 max-w-xs truncate">{{ item.items_summary }}</td>
+                        <td class="py-4 px-4 text-gray-600 max-w-xs truncate">{{ item.location }}</td>
+                        <td class="py-4 px-4 font-medium text-gray-700">{{ item.end_datetime }}</td>
+                        <td class="py-4 px-4 text-center">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-bold {{ item.badge_style }}">
+                                {{ item.status }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <button type="button" class="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100">
+                                ดูรายละเอียด >
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-gray-400">ยังไม่มีประวัติการยืมในขณะนี้</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

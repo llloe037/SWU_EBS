@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">สร้างคำร้องขอยืมอุปกรณ์ (Borrow Request)</h2>
+        <p class="text-gray-500 text-sm mt-1">กรุณาตรวจสอบรายการอุปกรณ์และระบุรายละเอียดการนำไปใช้งาน</p>
+    </div>
+
+    <!-- PROGRESS STEPPER -->
+    <div class="w-full max-w-3xl mx-auto mb-14 mt-4">
+        <div class="relative flex justify-between items-center">
+            <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-gray-200 -z-10 rounded-full"></div>
+            <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-1/3 h-1 bg-[#9e1b32] -z-10 rounded-full transition-all duration-500"></div>
+
+            <!-- Step 1 -->
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 bg-[#9e1b32] text-white rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50 shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <div class="absolute top-12 text-center w-32 -ml-16 left-1/2 text-sm font-bold text-gray-700">เลือกอุปกรณ์</div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 bg-[#9e1b32] text-white rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50 shadow-[0_0_15px_rgba(158,27,50,0.6)]">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                </div>
+                <div class="absolute top-12 text-center w-32 -ml-16 left-1/2 text-sm font-bold text-[#9e1b32]">ระบุรายละเอียด</div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 bg-white border-2 border-gray-300 text-gray-400 rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div class="absolute top-12 text-center w-32 -ml-16 left-1/2 text-sm font-medium text-gray-400">ตรวจสอบข้อมูล</div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 bg-white border-2 border-gray-300 text-gray-400 rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <div class="absolute top-12 text-center w-32 -ml-16 left-1/2 text-sm font-medium text-gray-400">ยืนยันการยืม</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ส่วนเนื้อหา -->
+    <div class="flex flex-col gap-6 max-w-4xl mx-auto w-full">
+        <!-- รายการอุปกรณ์ที่เลือก -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-2">
+            <h3 class="font-bold text-gray-800 text-base mb-4">รายการที่เลือกไว้ ({{ cart_items|length }} รายการ)</h3>
+            <div class="space-y-3">
+                {% for item in cart_items %}
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-red-100 text-[#9e1b32] rounded-lg flex items-center justify-center font-bold text-xs">
+                            {{ item.type }}
+                        </div>
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs bg-red-100 text-[#9e1b32] font-bold px-2 py-0.5 rounded">{{ item.type }}</span>
+                                <span class="text-xs text-gray-400 font-mono">{{ item.id }}</span>
+                            </div>
+                            <h4 class="font-bold text-gray-800 text-sm mt-0.5">{{ item.name }}</h4>
+                            <p class="text-xs text-gray-500">จำนวน: {{ item.qty }} ชิ้น/ชุด</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'borrow_app:remove_from_cart' forloop.counter0 %}" class="text-gray-400 hover:text-red-600 p-2 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ฟอร์มข้อมูลการยืม -->
+        <div class="w-full mb-12">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <form action="{% url 'borrow_app:request_form' %}" method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">วันที่/เวลา ต้องการยืม <span class="text-red-500">*</span></label>
+                            <input type="datetime-local" name="start_datetime" required class="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">วันที่/เวลา คาดว่าจะคืน <span class="text-red-500">*</span></label>
+                            <input type="datetime-local" name="end_datetime" required class="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">สถานที่นำไปใช้งาน <span class="text-red-500">*</span></label>
+                        <input type="text" name="location" required placeholder="เช่น ห้องประชุม 301 อาคารสำนักงานบริการ" class="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">วัตถุประสงค์การนำไปใช้ <span class="text-red-500">*</span></label>
+                        <textarea name="purpose" rows="3" required placeholder="โปรดระบุรายละเอียดโครงการ หรืองานที่นำไปใช้..." class="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none resize-none"></textarea>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">ช่องทางการรับอุปกรณ์</label>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <label class="flex-1 border rounded-lg p-3 cursor-pointer hover:bg-gray-50 flex items-center">
+                                <input type="radio" name="pickup_method" value="รับด้วยตนเองที่ห้องพัสดุ" class="w-4 h-4 accent-[#9e1b32]" checked>
+                                <span class="ml-2 text-sm">รับด้วยตนเองที่ห้องพัสดุ</span>
+                            </label>
+                            <label class="flex-1 border rounded-lg p-3 cursor-pointer hover:bg-gray-50 flex items-center">
+                                <input type="radio" name="pickup_method" value="ให้เจ้าหน้าที่ไปติดตั้งให้" class="w-4 h-4 accent-[#9e1b32]">
+                                <span class="ml-2 text-sm">ให้เจ้าหน้าที่ไปติดตั้งให้</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-[#9e1b32] text-white py-3 rounded-lg font-bold hover:bg-[#7a1527] transition-colors shadow-md">
+                        ถัดไป: ตรวจสอบข้อมูลคำร้อง
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
