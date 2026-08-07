@@ -41,28 +41,32 @@
                         <th class="py-3.5 px-4">วันที่ยืม</th>
                         <th class="py-3.5 px-4">อุปกรณ์ที่ยืม</th>
                         <th class="py-3.5 px-4">สถานที่นำไปใช้</th>
-                        <th class="py-3.5 px-4">กำหนดส่งคืน</th>
+                        <th class="py-3.5 px-4">ผู้อนุมัติ</th>
+                        <th class="py-3.5 px-4">วันที่คืน</th>
+                        <th class="py-3.5 px-4">ผู้รับคืน</th>
                         <th class="py-3.5 px-4 text-center">สถานะ</th>
-                        <th class="py-3.5 px-4 text-center">รายละเอียด</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-xs">
                     {% for item in requests_list %}
                     <tr class="hover:bg-gray-50/80 transition-colors">
-                        <td class="py-4 px-4 font-bold text-[#9e1b32]">{{ item.request_number }}</td>
+                        <td class="py-4 px-4 font-bold text-[#9e1b32]">
+                            <div>{{ item.request_number }}</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">{{ item.created_at|date:"d/m/Y H:i" }}</div>
+                        </td>
                         <td class="py-4 px-4 text-gray-700">{{ item.start_datetime }}</td>
                         <td class="py-4 px-4 font-semibold text-gray-800 max-w-xs truncate">{{ item.items_summary }}</td>
                         <td class="py-4 px-4 text-gray-600 max-w-xs truncate">{{ item.location }}</td>
-                        <td class="py-4 px-4 font-medium text-gray-700">{{ item.end_datetime }}</td>
+                        <td class="py-4 px-4 text-gray-700">{{ item.approved_by.get_full_name|default:item.approved_by.username|default:'-' }}</td>
+                        <td class="py-4 px-4 text-gray-700">{{ item.returned_at|date:"d/m/Y H:i"|default:'-' }}</td>
+                        <td class="py-4 px-4 text-gray-700">{{ item.received_by.get_full_name|default:item.received_by.username|default:'-' }}</td>
                         <td class="py-4 px-4 text-center">
                             <span class="inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-bold {{ item.badge_style }}">
                                 {{ item.status }}
                             </span>
-                        </td>
-                        <td class="py-4 px-4 text-center">
-                            <button type="button" class="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100">
-                                ดูรายละเอียด >
-                            </button>
+                            {% if item.reject_reason %}
+                            <div class="text-[10px] text-rose-500 mt-1 max-w-[140px]">{{ item.reject_reason }}</div>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

@@ -10,9 +10,13 @@
                 <thead class="bg-gray-100 text-gray-500 uppercase font-semibold border-b">
                     <tr>
                         <th class="p-3">เลขที่คำร้อง</th>
-                        <th class="p-3">ผู้ขอยืม</th>
-                        <th class="p-3">รายการอุปกรณ์</th>
+                        <th class="p-3">ผู้ยืม</th>
+                        <th class="p-3">อุปกรณ์ที่ยืม</th>
                         <th class="p-3">วันที่ยืม</th>
+                        <th class="p-3">สถานที่</th>
+                        <th class="p-3">ผู้อนุมัติ</th>
+                        <th class="p-3">วันที่คืน</th>
+                        <th class="p-3">ผู้รับคืน</th>
                         <th class="p-3">สถานะ</th>
                     </tr>
                 </thead>
@@ -23,10 +27,17 @@
                         <td class="p-3">{{ req.user.username }}</td>
                         <td class="p-3">{{ req.items_summary }}</td>
                         <td class="p-3">{{ req.start_datetime }}</td>
+                        <td class="p-3 text-gray-500">{{ req.location }}</td>
+                        <td class="p-3">{{ req.approved_by.get_full_name|default:req.approved_by.username|default:'-' }}</td>
+                        <td class="p-3">{{ req.returned_at|date:"d/m/Y H:i"|default:'-' }}</td>
+                        <td class="p-3">{{ req.received_by.get_full_name|default:req.received_by.username|default:'-' }}</td>
                         <td class="p-3">
                             <span class="px-2 py-1 rounded text-[10px] font-bold border {{ req.badge_style }}">
                                 {{ req.status }}
                             </span>
+                            {% if req.reject_reason %}
+                            <div class="text-[10px] text-rose-500 mt-1">{{ req.reject_reason }}</div>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

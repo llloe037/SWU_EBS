@@ -15,6 +15,98 @@ from django.db import models
 from django.db.models import Count, Q, Sum
 
 
+def build_equipment_type_summary(query='', category='', status=''):
+    filters = Q()
+
+    if query:
+        filters &= Q(
+            Q(name__icontains=query) |
+            Q(code__icontains=query) |
+            Q(inventory_no__icontains=query) |
+            Q(category__icontains=query) |
+            Q(group__account_determ__icontains=query) |
+            Q(group__asset_description__icontains=query)
+        )
+
+    if category and category != '-- หมวดหมู่ทั้งหมด --':
+        filters &= Q(category=category) | Q(group__account_determ=category)
+
+    if status and status != '-- สถานะทั้งหมด --':
+        if status in ['พร้อมให้ยืม', 'พร้อมใช้งาน']:
+            filters &= Q(status__in=['พร้อมให้ยืม', 'พร้อมใช้งาน'])
+        elif status in ['ถูกยืม', 'ติดยืม']:
+            filters &= Q(status='กำลังถูกยืม')
+        else:
+            filters &= Q(status=status)
+
+    summary = (
+        Equipment.objects.select_related('group')
+        .filter(filters)
+        .values('category', 'name')
+        .annotate(
+            available_count=Sum('available_quantity', filter=Q(status__in=['พร้อมให้ยืม', 'พร้อมใช้งาน'])),
+            total_count=Sum('total_quantity')
+        )
+        .order_by('category', 'name')
+    )
+
+    return [
+        {
+            'category': item['category'],
+            'name': item['name'],
+            'available_count': int(item['available_count'] or 0),
+            'total_count': int(item['total_count'] or 0),
+        }
+        for item in summary
+    ]
+
+
+def get_equipment_items_for_type(selected_type='', query='', category='', status=''):
+    if not selected_type:
+        return Equipment.objects.none()
+
+    selected_category = ''
+    selected_name = ''
+
+    if '|' in selected_type:
+        selected_category, selected_name = [part.strip() for part in selected_type.split('|', 1)]
+    else:
+        selected_name = selected_type.strip()
+
+    filters = Q()
+    if selected_category:
+        filters &= Q(category=selected_category)
+    if selected_name:
+        filters &= Q(name=selected_name)
+
+    if query:
+        filters &= Q(
+            Q(name__icontains=query) |
+            Q(code__icontains=query) |
+            Q(inventory_no__icontains=query) |
+            Q(category__icontains=query) |
+            Q(group__account_determ__icontains=query) |
+            Q(group__asset_description__icontains=query)
+        )
+
+    if category and category != '-- หมวดหมู่ทั้งหมด --':
+        filters &= Q(category=category) | Q(group__account_determ=category)
+
+    if status and status != '-- สถานะทั้งหมด --':
+        if status in ['พร้อมให้ยืม', 'พร้อมใช้งาน']:
+            filters &= Q(status__in=['พร้อมให้ยืม', 'พร้อมใช้งาน'])
+        elif status in ['ถูกยืม', 'ติดยืม']:
+            filters &= Q(status='กำลังถูกยืม')
+        else:
+            filters &= Q(status=status)
+
+    return (
+        Equipment.objects.select_related('group')
+        .filter(filters)
+        .order_by('category', 'name', 'code')
+    )
+
+
 def fetch_ssms_grouped_equipments(query='', category=''):
     query_filters = []
     params = []
@@ -123,6 +215,7 @@ def home_view(request):
     category = request.GET.get('category', '')
     status = request.GET.get('status', '')
     group_id = request.GET.get('group_id', '')
+    selected_equipment_type = request.GET.get('equipment_type', '').strip()
 
     group_filter = Q()
     if query:
@@ -160,6 +253,21 @@ def home_view(request):
             total_count=Sum('equipments__total_quantity')
         ).filter(available_count__gt=0).order_by('-available_count', 'account_determ', 'asset_description')
 
+    equipment_type_summary = build_equipment_type_summary(query=query, category=category, status=status)
+    selected_equipment_items = get_equipment_items_for_type(
+        selected_equipment_type,
+        query=query,
+        category=category,
+        status=status,
+    ) if selected_equipment_type else Equipment.objects.none()
+
+    selected_equipment_type_label = ''
+    if selected_equipment_type and '|' in selected_equipment_type:
+        selected_category_value, selected_name_value = [part.strip() for part in selected_equipment_type.split('|', 1)]
+        selected_equipment_type_label = f"{selected_name_value} ({selected_category_value})"
+    elif selected_equipment_type:
+        selected_equipment_type_label = selected_equipment_type
+
     selected_group_items = None
     selected_group = None
     if group_id:
@@ -171,6 +279,10 @@ def home_view(request):
 
     context = {
         'grouped_equipments': grouped_equipments,
+        'equipment_type_summary': equipment_type_summary,
+        'selected_equipment_items': selected_equipment_items,
+        'selected_equipment_type': selected_equipment_type,
+        'selected_equipment_type_label': selected_equipment_type_label,
         'selected_group_items': selected_group_items,
         'selected_group': selected_group,
         'categories': categories,
@@ -240,14 +352,11 @@ def confirm_request_view(request):
         )
 
         for item in cart_items:
-            eq_obj = Equipment.objects.filter(id=item.get('id')).first()
             BorrowItem.objects.create(
                 borrow_request=borrow_req,
-                equipment=eq_obj,
-                item_id=str(item.get('id', '')),
                 item_name=item.get('name', ''),
-                item_type=item.get('type', ''),
-                quantity=int(item.get('qty', 1))
+                requested_category=item.get('category', ''),
+                quantity=int(item.get('qty', 1)),
             )
 
         request.session.pop('borrow_cart', None)
@@ -262,20 +371,26 @@ def confirm_request_view(request):
 def my_requests_view(request):
     active_statuses = ['รอการอนุมัติ', 'อนุมัติ', 'รอตรวจสอบการคืน', 'คืนไม่ครบ', 'เกินกำหนด']
     active_requests = BorrowRequest.objects.filter(
-        user=request.user, 
+        user=request.user,
         status__in=active_statuses
     ).order_by('-created_at')
-    
+
+    for borrow_req in active_requests:
+        borrow_req.refresh_status()
+
+    active_requests = list(active_requests)
+    active_requests.sort(key=lambda req: req.created_at, reverse=True)
+
     return render(request, 'borrow_app/my-requests.html', {'requests_list': active_requests})
 
 @login_required
 def history_view(request):
     history_statuses = ['ยกเลิก', 'ไม่อนุมัติ', 'คืนสำเร็จ']
     history_requests = BorrowRequest.objects.filter(
-        user=request.user, 
+        user=request.user,
         status__in=history_statuses
     ).order_by('-created_at')
-    
+
     return render(request, 'borrow_app/history.html', {'requests_list': history_requests})
 
 @login_required
@@ -292,19 +407,16 @@ def cancel_request_view(request, request_id):
 @login_required
 def add_to_cart_view(request):
     if request.method == 'POST':
-        item_id = request.POST.get('item_id', '')
+        item_category = request.POST.get('item_category', '')
         item_name = request.POST.get('item_name', '')
-        item_type = request.POST.get('borrow_mode', 'bundle')
         qty = request.POST.get('quantity', 1)
 
         cart = list(request.session.get('borrow_cart', []))
         cart.append({
-            'id': item_id,
+            'category': item_category,
             'name': item_name,
-            'type': 'Bundle' if item_type == 'bundle' else 'ครุภัณฑ์หลัก',
-            'qty': qty
+            'qty': qty,
         })
-
         request.session['borrow_cart'] = cart
         request.session.modified = True
 
@@ -381,9 +493,11 @@ def return_request_view(request, request_id):
     borrow_req = get_object_or_404(BorrowRequest, request_number=request_id, user=request.user)
 
     if request.method == 'POST':
-        if borrow_req.status == 'อนุมัติ':
-            borrow_req.status = 'รอตรวจสอบการคืน'
+        if borrow_req.status in ['อนุมัติ', 'เกินกำหนด']:
             borrow_req.return_note = request.POST.get('return_note', '').strip()
+            if request.FILES.get('return_image'):
+                borrow_req.return_image = request.FILES['return_image']
+            borrow_req.status = 'รอตรวจสอบการคืน'
             borrow_req.save()
             messages.success(request, 'คำขอคืนอุปกรณ์ถูกส่งแล้ว โปรดรอการตรวจสอบจากผู้ดูแลระบบ')
         else:
@@ -446,32 +560,22 @@ def admin_manage_requests_view(request):
 
         if borrow_req.status == 'รอการอนุมัติ':
             if action == 'approve':
-                borrow_req.status = 'อนุมัติ'
-                borrow_req.save()
-
+                assignments = {}
                 for item in borrow_req.items.all():
-                    if item.equipment:
-                        item.equipment.status = 'กำลังถูกยืม'
-                        if item.equipment.available_quantity > 0:
-                            item.equipment.available_quantity -= item.quantity
-                        item.equipment.save()
+                    eq_id = request.POST.get(f'equipment_for_{item.id}', '')
+                    if eq_id:
+                        assignments[str(item.id)] = eq_id
+                borrow_req.approve(request.user, assignments)
             else:
-                borrow_req.status = 'ไม่อนุมัติ'
-                borrow_req.save()
+                reason = request.POST.get('reject_reason', '').strip()
+                borrow_req.reject(reason)
 
         elif borrow_req.status == 'รอตรวจสอบการคืน':
             if action == 'approve':
-                borrow_req.status = 'คืนสำเร็จ'
-                borrow_req.save()
-
-                for item in borrow_req.items.all():
-                    if item.equipment:
-                        item.equipment.status = 'พร้อมให้ยืม'
-                        item.equipment.available_quantity += item.quantity
-                        item.equipment.save()
+                borrow_req.mark_return_completed(request.user)
             else:
                 borrow_req.status = 'คืนไม่ครบ'
-                borrow_req.save()
+                borrow_req.save(update_fields=['status'])
 
         return redirect('borrow_app:admin_manage_requests')
 

@@ -53,32 +53,91 @@
     </div>
 </div>
 
+{% if not selected_equipment_type %}
 <!-- Dynamic Equipment Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-    {% for item in grouped_equipments %}
-    <form method="POST" action="{% url 'borrow_app:add_group_to_cart' item.id %}" class="w-full">
-        {% csrf_token %}
-        <button type="submit" class="text-left w-full block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+<div class="mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900">ประเภทอุปกรณ์ที่พร้อมให้ยืม</h3>
+            <p class="text-sm text-slate-500">แสดงข้อมูลอุปกรณ์แบบรวมตามประเภทเพื่อให้เลือกและดูจำนวนได้รวดเร็ว</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+        {% for item in equipment_type_summary %}
+        <a href="{% url 'borrow_app:home' %}?equipment_type={{ item.category|urlencode }}|{{ item.name|urlencode }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if selected_category %}&category={{ selected_category|urlencode }}{% endif %}{% if selected_status %}&status={{ selected_status|urlencode }}{% endif %}" class="block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
             <div class="p-5 flex flex-col h-full">
                 <div class="flex items-center justify-between mb-4">
-                    <span class="text-xs font-semibold text-slate-500">{{ item.account_determ|default:"ทั่วไป" }}</span>
-                    <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">พร้อมให้ยืม {{ item.available_count }}</span>
+                    <span class="text-xs font-semibold text-slate-500">{{ item.category|default:"ทั่วไป" }}</span>
+                    <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">พร้อม {{ item.available_count }}</span>
                 </div>
-                <h3 class="text-xl font-bold text-slate-900 mb-3 line-clamp-2">{{ item.asset_description }}</h3>
-                <p class="text-sm text-slate-500 mb-6">รายการนี้มีทั้งหมด {{ item.total_count }} ชิ้น</p>
+                <h3 class="text-xl font-bold text-slate-900 mb-3 line-clamp-2">{{ item.name }}</h3>
+                <p class="text-sm text-slate-500 mb-6">มีทั้งหมด {{ item.total_count }} ชิ้น</p>
                 <div class="mt-auto flex items-center justify-between text-xs text-slate-400">
-                    <span>กดเพื่อเพิ่มคำร้อง</span>
-                    <span class="text-emerald-600 font-semibold">เพิ่ม</span>
+                    <span>ดูรายการย่อย</span>
+                    <span class="text-emerald-600 font-semibold">เลือก</span>
                 </div>
             </div>
-        </button>
-    </form>
-    {% empty %}
-    <div class="col-span-full bg-white p-12 text-center rounded-xl border border-gray-200 text-gray-500">
-        <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-        ยังไม่มีหมวดหมู่พร้อมให้ยืม
+        </a>
+        {% empty %}
+        <div class="col-span-full bg-white p-12 text-center rounded-xl border border-gray-200 text-gray-500">
+            <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+            ยังไม่มีประเภทอุปกรณ์ที่ตรงกับเงื่อนไขการค้นหา
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
+{% else %}
+<div class="mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900">เลือกประเภทแล้ว: {{ selected_equipment_type_label }}</h3>
+            <p class="text-sm text-slate-500">โปรดกดปุ่มด้านล่างหากต้องการกลับไปเลือกหมวดหมู่อื่น</p>
+        </div>
+        <a href="{% url 'borrow_app:home' %}" class="text-sm text-[#9e1b32] hover:underline">กลับไปเลือกหมวดหมู่</a>
+    </div>
+</div>
+{% endif %}
+
+{% if selected_equipment_items %}
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900">รายการอุปกรณ์ในประเภท: {{ selected_equipment_type_label }}</h3>
+            <p class="text-sm text-slate-500">แสดงอุปกรณ์ย่อยที่ตรงกับประเภทที่คุณเลือก</p>
+        </div>
+        <a href="{% url 'borrow_app:home' %}" class="text-sm text-[#9e1b32] hover:underline">ดูทั้งหมด</a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {% for item in selected_equipment_items %}
+        <div class="border border-gray-200 rounded-lg p-4 bg-slate-50">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-slate-500">{{ item.category }}</span>
+                <span class="text-xs px-2 py-1 rounded-full {% if item.status == 'พร้อมให้ยืม' or item.status == 'พร้อมใช้งาน' %}bg-emerald-50 text-emerald-700{% else %}bg-amber-50 text-amber-700{% endif %}">{{ item.status }}</span>
+            </div>
+            <h4 class="font-semibold text-slate-900">{{ item.name }}</h4>
+            <p class="text-sm text-slate-500 mt-1">รหัส: {{ item.code }}</p>
+            <p class="text-sm text-slate-500">จำนวนพร้อมยืม: {{ item.available_quantity }} / {{ item.total_quantity }}</p>
+            {% if item.available_quantity > 0 %}
+            <form action="{% url 'borrow_app:add_to_cart' %}" method="POST" class="mt-4">
+                {% csrf_token %}
+                <input type="hidden" name="item_category" value="{{ item.category }}">
+                <input type="hidden" name="item_name" value="{{ item.name }}">
+                <input type="hidden" name="quantity" value="1">
+                <button type="submit" class="w-full bg-[#9e1b32] text-white text-sm font-semibold px-3 py-2 rounded-lg hover:bg-[#7a1527] transition-colors">
+                    เพิ่มลงคำร้อง
+                </button>
+            </form>
+            {% else %}
+            <div class="mt-4 text-sm text-slate-500">ไม่พร้อมให้ยืมในขณะนี้</div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div class="col-span-full text-sm text-slate-500">ไม่มีรายการอุปกรณ์ในประเภทนี้</div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 {% endblock %}
