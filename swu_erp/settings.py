@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +21,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-v*+i_wp$5nt*@=gaoh#9_jv^=2-j$ici@+4^k(8y1c$^c7c^d4'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-v*+i_wp$5nt*@=gaoh#9_jv^=2-j$ici@+4^k(8y1c$^c7c^d4')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
 
 # Application definition
@@ -80,13 +80,13 @@ DATABASES = {
     },
     'ssms_db': {
         'ENGINE': 'mssql',
-        'NAME': 'SWU_EBS',          # เช่น 'SWU_Inventory'
-        'USER': 'sc66102010137',                            # Username ของ SSMS
-        'PASSWORD': '123456789_@@',             # รหัสผ่าน SSMS
-        'HOST': '10.1.21.151',                     # หรือ IP Server / Instance เช่น 'DESKTOP-XXXX\\SQLEXPRESS'
-        'PORT': '',                              # เว้นว่างไว้ถ้าใช้ Default Port (1433)
+        'NAME': os.environ.get('SSMS_DB_NAME', 'SWU_EBS'),
+        'USER': os.environ.get('SSMS_DB_USER', 'sc66102010137'),
+        'PASSWORD': os.environ.get('SSMS_DB_PASSWORD', '123456789_@@'),
+        'HOST': os.environ.get('SSMS_DB_HOST', '10.1.21.151'),
+        'PORT': os.environ.get('SSMS_DB_PORT', ''),
         'OPTIONS': {
-            'driver': 'ODBC Driver 17 for SQL Server',  # หรือ ODBC Driver 18 for SQL Server
+            'driver': 'ODBC Driver 17 for SQL Server',
         },
     }
 }
@@ -127,5 +127,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # บอก Django ว่าถ้ายังไม่ได้ Login ให้เด้งมาที่หน้าชื่อ 'login'
 LOGIN_URL = 'borrow_app:login'

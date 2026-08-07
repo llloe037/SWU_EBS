@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -97,12 +99,77 @@ class BorrowRequest(models.Model):
     purpose = models.TextField(verbose_name="วัตถุประสงค์")
     location = models.CharField(max_length=255, verbose_name="สถานที่นำไปใช้")
     pickup_method = models.CharField(max_length=100, verbose_name="ช่องทางการรับอุปกรณ์")
+    approved_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_requests', verbose_name="ผู้อนุมัติ")
+    reject_reason = models.TextField(blank=True, null=True, verbose_name="เหตุผลที่ไม่อนุมัติ")
     return_note = models.TextField(blank=True, null=True, verbose_name="หมายเหตุการคืน")
+    return_image = models.ImageField(upload_to='return_evidence/', blank=True, null=True, verbose_name="รูปหลักฐานการคืน")
+    returned_at = models.DateTimeField(null=True, blank=True, verbose_name="วันที่คืน")
+    received_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='received_returns', verbose_name="ผู้รับคืน")
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='รอการอนุมัติ', verbose_name="สถานะ")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="วันที่สร้างคำร้อง")
 
     def __str__(self):
         return self.request_number
+
+    def approve(self, approved_by_user, item_equipment_assignments=None):
+        self.status = 'อนุมัติ'
+        self.approved_by = approved_by_user
+        self.save(update_fields=['status', 'approved_by'])
+        assignments = item_equipment_assignments or {}
+        for item in self.items.all():
+            eq_id = assignments.get(str(item.id))
+            equipment = Equipment.objects.filter(id=eq_id).first() if eq_id else item.equipment
+            if equipment:
+                item.equipment = equipment
+                item.save(update_fields=['equipment'])
+                equipment.status = 'กำลังถูกยืม'
+                if equipment.available_quantity > 0:
+                    equipment.available_quantity -= item.quantity
+                equipment.save(update_fields=['status', 'available_quantity'])
+
+    def reject(self, reason=''):
+        self.status = 'ไม่อนุมัติ'
+        self.reject_reason = reason
+        self.save(update_fields=['status', 'reject_reason'])
+
+    def mark_return_pending(self, return_note=''):
+        self.return_note = return_note
+        self.status = 'รอตรวจสอบการคืน'
+        self.save(update_fields=['return_note', 'status'])
+
+    def mark_return_completed(self, received_by_user=None):
+        from django.utils import timezone
+        self.status = 'คืนสำเร็จ'
+        self.received_by = received_by_user
+        self.returned_at = timezone.now()
+        self.save(update_fields=['status', 'received_by', 'returned_at'])
+        for item in self.items.all():
+            if item.equipment:
+                item.equipment.status = 'พร้อมให้ยืม'
+                item.equipment.available_quantity += item.quantity
+                item.equipment.save(update_fields=['status', 'available_quantity'])
+
+    def refresh_status(self, now=None):
+        if self.status not in ['อนุมัติ', 'รอตรวจสอบการคืน', 'คืนไม่ครบ']:
+            return self.status
+
+        if now is None:
+            now = datetime.now()
+
+        try:
+            end_date = datetime.strptime(self.end_datetime, '%Y-%m-%d').date()
+            today = now.date()
+        except ValueError:
+            return self.status
+
+        if self.status == 'อนุมัติ' and today > end_date:
+            self.status = 'เกินกำหนด'
+            self.save(update_fields=['status'])
+        elif self.status in ['รอตรวจสอบการคืน', 'คืนไม่ครบ'] and today > end_date:
+            self.status = 'เกินกำหนด'
+            self.save(update_fields=['status'])
+
+        return self.status
 
     # สรุปชื่อรายการอุปกรณ์สำหรับแสดงในตาราง
     @property
