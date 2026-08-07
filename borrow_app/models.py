@@ -1,4 +1,5 @@
 from datetime import datetime
+import datetime as dt
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -94,8 +95,8 @@ class BorrowRequest(models.Model):
 
     request_number = models.CharField(max_length=20, unique=True, verbose_name="เลขที่คำร้อง")
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="ผู้ขอยืม")
-    start_datetime = models.CharField(max_length=100, verbose_name="วันที่ยืม")
-    end_datetime = models.CharField(max_length=100, verbose_name="กำหนดส่งคืน")
+    start_datetime = models.DateField(null=True, blank=True, verbose_name="วันที่ยืม")
+    end_datetime = models.DateField(null=True, blank=True, verbose_name="กำหนดส่งคืน")
     purpose = models.TextField(verbose_name="วัตถุประสงค์")
     location = models.CharField(max_length=255, verbose_name="สถานที่นำไปใช้")
     pickup_method = models.CharField(max_length=100, verbose_name="ช่องทางการรับอุปกรณ์")
@@ -126,11 +127,20 @@ class BorrowRequest(models.Model):
                 if equipment.available_quantity > 0:
                     equipment.available_quantity -= item.quantity
                 equipment.save(update_fields=['status', 'available_quantity'])
+        Notification.objects.create(
+            user=self.user,
+            borrow_request=self,
+            message=f'คำร้อง {self.request_number} ได้รับการอนุมัติแล้ว กรุณาติดต่อผู้ดูแลเพื่อรับอุปกรณ์',
+        )
 
     def reject(self, reason=''):
         self.status = 'ไม่อนุมัติ'
         self.reject_reason = reason
         self.save(update_fields=['status', 'reject_reason'])
+        msg = f'คำร้อง {self.request_number} ไม่ได้รับการอนุมัติ'
+        if reason:
+            msg += f' เหตุผล: {reason}'
+        Notification.objects.create(user=self.user, borrow_request=self, message=msg)
 
     def mark_return_pending(self, return_note=''):
         self.return_note = return_note
@@ -148,24 +158,25 @@ class BorrowRequest(models.Model):
                 item.equipment.status = 'พร้อมให้ยืม'
                 item.equipment.available_quantity += item.quantity
                 item.equipment.save(update_fields=['status', 'available_quantity'])
+        Notification.objects.create(
+            user=self.user,
+            borrow_request=self,
+            message=f'การคืนอุปกรณ์ในคำร้อง {self.request_number} ได้รับการยืนยันเรียบร้อยแล้ว',
+        )
 
     def refresh_status(self, now=None):
         if self.status not in ['อนุมัติ', 'รอตรวจสอบการคืน', 'คืนไม่ครบ']:
             return self.status
 
-        if now is None:
-            now = datetime.now()
-
-        try:
-            end_date = datetime.strptime(self.end_datetime, '%Y-%m-%d').date()
-            today = now.date()
-        except ValueError:
+        if not self.end_datetime:
             return self.status
 
-        if self.status == 'อนุมัติ' and today > end_date:
-            self.status = 'เกินกำหนด'
-            self.save(update_fields=['status'])
-        elif self.status in ['รอตรวจสอบการคืน', 'คืนไม่ครบ'] and today > end_date:
+        today = (now.date() if hasattr(now, 'date') else now) if now else dt.date.today()
+        end_date = self.end_datetime if isinstance(self.end_datetime, dt.date) else None
+        if end_date is None:
+            return self.status
+
+        if today > end_date:
             self.status = 'เกินกำหนด'
             self.save(update_fields=['status'])
 
@@ -223,3 +234,17 @@ class BorrowItem(models.Model):
         if self.equipment:
             return f"{self.equipment.name} (x{self.quantity})"
         return f"{self.item_name} (x{self.quantity})"
+
+
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications', verbose_name="ผู้รับ")
+    borrow_request = models.ForeignKey(BorrowRequest, on_delete=models.CASCADE, null=True, blank=True)
+    message = models.CharField(max_length=500, verbose_name="ข้อความ")
+    is_read = models.BooleanField(default=False, verbose_name="อ่านแล้ว")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username}: {self.message[:50]}"
