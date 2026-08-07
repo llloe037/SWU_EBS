@@ -1,6 +1,7 @@
 import hashlib
 import uuid
 import pandas as pd
+import datetime as dt
 from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
@@ -9,10 +10,21 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import BorrowRequest, BorrowItem, Equipment, EquipmentGroup
+from .models import BorrowRequest, BorrowItem, Equipment, EquipmentGroup, Notification
 from django.db import connections
 from django.db import models
 from django.db.models import Count, Q, Sum
+
+
+def _parse_date(value):
+    if not value or value == '-':
+        return None
+    for fmt in ('%Y-%m-%d', '%Y-%m-%dT%H:%M', '%Y-%m-%dT%H:%M:%S'):
+        try:
+            return datetime.strptime(value[:len(fmt)], fmt).date()
+        except (ValueError, TypeError):
+            continue
+    return None
 
 
 def build_equipment_type_summary(query='', category='', status=''):
@@ -343,8 +355,8 @@ def confirm_request_view(request):
         borrow_req = BorrowRequest.objects.create(
             request_number=new_req_no,
             user=request.user,
-            start_datetime=details.get('start_datetime', '-'),
-            end_datetime=details.get('end_datetime', '-'),
+            start_datetime=_parse_date(details.get('start_datetime')),
+            end_datetime=_parse_date(details.get('end_datetime')),
             purpose=details.get('purpose', '-'),
             location=details.get('location', '-'),
             pickup_method=details.get('pickup_method', '-'),
@@ -369,7 +381,7 @@ def confirm_request_view(request):
 
 @login_required
 def my_requests_view(request):
-    active_statuses = ['รอการอนุมัติ', 'อนุมัติ', 'รอตรวจสอบการคืน', 'คืนไม่ครบ', 'เกินกำหนด']
+    active_statuses = ['รอการอนุมัติ', 'อนุมัตดิ', 'รอตรวจสอบการคืน', 'คืนไม่ครบ', 'เกินกำหนด']
     active_requests = BorrowRequest.objects.filter(
         user=request.user,
         status__in=active_statuses
@@ -380,6 +392,8 @@ def my_requests_view(request):
 
     active_requests = list(active_requests)
     active_requests.sort(key=lambda req: req.created_at, reverse=True)
+
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
 
     return render(request, 'borrow_app/my-requests.html', {'requests_list': active_requests})
 
@@ -537,13 +551,15 @@ def admin_dashboard_view(request):
 
     pending_count = BorrowRequest.objects.filter(status='รอการอนุมัติ').count()
     return_pending_count = BorrowRequest.objects.filter(status='รอตรวจสอบการคืน').count()
-    active_count = BorrowRequest.objects.filter(status='อนุมัติ').count()
+    active_count = BorrowRequest.objects.filter(status='อนุมัตดิ').count()
+    overdue_count = BorrowRequest.objects.filter(status='เกินกำหนด').count()
     total_request_count = BorrowRequest.objects.count()
 
     context = {
         'pending_count': pending_count,
         'return_pending_count': return_pending_count,
         'active_count': active_count,
+        'overdue_count': overdue_count,
         'total_request_count': total_request_count,
         'recent_requests': BorrowRequest.objects.filter(status='รอการอนุมัติ').order_by('-created_at')[:5],
         'eq_stats': eq_stats,

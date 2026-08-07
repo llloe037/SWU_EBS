@@ -132,8 +132,8 @@ class BorrowRequestWorkflowTests(TestCase):
         self.request = BorrowRequest.objects.create(
             request_number='BR-001',
             user=self.user,
-            start_datetime='2026-08-07',
-            end_datetime='2026-08-10',
+            start_datetime=datetime(2026, 8, 7).date(),
+            end_datetime=datetime(2026, 8, 10).date(),
             purpose='ทดสอบ',
             location='ห้องพัสดุ',
             pickup_method='รับด้วยตนเอง',
@@ -173,11 +173,12 @@ class BorrowRequestWorkflowTests(TestCase):
         self.assertEqual(self.equipment.available_quantity, 2)
 
     def test_overdue_status_updates_when_due_date_has_passed(self):
+        yesterday = datetime.now().date() - timedelta(days=1)
         self.request.status = 'อนุมัติ'
-        self.request.end_datetime = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        self.request.end_datetime = yesterday
         self.request.save(update_fields=['status', 'end_datetime'])
 
-        self.request.refresh_status(now=datetime.now())
+        self.request.refresh_status()
         self.request.refresh_from_db()
 
         self.assertEqual(self.request.status, 'เกินกำหนด')
