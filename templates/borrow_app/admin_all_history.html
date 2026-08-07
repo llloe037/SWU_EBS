@@ -28,9 +28,9 @@
                         <td class="p-3">{{ req.items_summary }}</td>
                         <td class="p-3">{{ req.start_datetime }}</td>
                         <td class="p-3 text-gray-500">{{ req.location }}</td>
-                        <td class="p-3">{{ req.approved_by.get_full_name|default:req.approved_by.username|default:'-' }}</td>
+                        <td class="p-3">{{ req.approved_by_display }}</td>
                         <td class="p-3">{{ req.returned_at|date:"d/m/Y H:i"|default:'-' }}</td>
-                        <td class="p-3">{{ req.received_by.get_full_name|default:req.received_by.username|default:'-' }}</td>
+                        <td class="p-3">{{ req.received_by_display }}</td>
                         <td class="p-3">
                             <span class="px-2 py-1 rounded text-[10px] font-bold border {{ req.badge_style }}">
                                 {{ req.status }}

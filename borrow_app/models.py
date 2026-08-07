@@ -182,6 +182,18 @@ class BorrowRequest(models.Model):
 
         return self.status
 
+    @property
+    def approved_by_display(self):
+        if not self.approved_by_id:
+            return '-'
+        return self.approved_by.get_full_name() or self.approved_by.username
+
+    @property
+    def received_by_display(self):
+        if not self.received_by_id:
+            return '-'
+        return self.received_by.get_full_name() or self.received_by.username
+
     # สรุปชื่อรายการอุปกรณ์สำหรับแสดงในตาราง
     @property
     def items_summary(self):
@@ -224,11 +236,20 @@ class BorrowRequest(models.Model):
 
 class BorrowItem(models.Model):
     borrow_request = models.ForeignKey(BorrowRequest, related_name='items', on_delete=models.CASCADE)
-    equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE, null=True, blank=True, verbose_name="อุปกรณ์")
+    equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE, null=True, blank=True, verbose_name="อุปกรณ์ที่จัดสรร")
     item_id = models.CharField(max_length=50, null=True, blank=True)
     item_name = models.CharField(max_length=255, null=True, blank=True)
+    requested_category = models.CharField(max_length=100, null=True, blank=True, verbose_name="หมวดหมู่ที่ขอยืม")
     item_type = models.CharField(max_length=50, null=True, blank=True)
     quantity = models.IntegerField(default=1)
+
+    def available_equipment_options(self):
+        filters = Q(status__in=['พร้อมให้ยืม', 'พร้อมใช้งาน'], available_quantity__gt=0)
+        if self.requested_category:
+            filters &= Q(category=self.requested_category) | Q(group__account_determ=self.requested_category)
+        if self.item_name:
+            filters &= Q(name=self.item_name)
+        return Equipment.objects.filter(filters).order_by('code')
 
     def __str__(self):
         if self.equipment:
