@@ -10,6 +10,15 @@
         <a href="{% url 'borrow_app:my_requests' %}" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition">ย้อนกลับ</a>
     </div>
 
+    {% if borrow_req.status == 'คืนไม่ครบ' %}
+    <div class="bg-amber-50 border border-amber-300 rounded-2xl p-4 mb-4 text-sm text-amber-800">
+        <strong>ผู้ดูแลระบบแจ้งว่าการคืนครั้งก่อนไม่ครบถ้วน</strong> โปรดส่งคืนอุปกรณ์ให้ครบถ้วนและอัปโหลดรูปหลักฐานใหม่
+        {% if borrow_req.return_note %}
+        <div class="mt-2 text-xs text-amber-700">หมายเหตุจากเจ้าหน้าที่: “{{ borrow_req.return_note }}”</div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>

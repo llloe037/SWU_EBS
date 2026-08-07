@@ -493,7 +493,7 @@ def return_request_view(request, request_id):
     borrow_req = get_object_or_404(BorrowRequest, request_number=request_id, user=request.user)
 
     if request.method == 'POST':
-        if borrow_req.status in ['อนุมัติ', 'เกินกำหนด']:
+        if borrow_req.status in ['อนุมัติ', 'เกินกำหนด', 'คืนไม่ครบ']:
             borrow_req.return_note = request.POST.get('return_note', '').strip()
             if request.FILES.get('return_image'):
                 borrow_req.return_image = request.FILES['return_image']
