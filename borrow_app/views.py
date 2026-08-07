@@ -381,7 +381,7 @@ def confirm_request_view(request):
 
 @login_required
 def my_requests_view(request):
-    active_statuses = ['รอการอนุมัติ', 'อนุมัตดิ', 'รอตรวจสอบการคืน', 'คืนไม่ครบ', 'เกินกำหนด']
+    active_statuses = ['รอการอนุมัติ', 'อนุมัติ', 'รอตรวจสอบการคืน', 'คืนไม่ครบ', 'เกินกำหนด']
     active_requests = BorrowRequest.objects.filter(
         user=request.user,
         status__in=active_statuses
@@ -551,7 +551,7 @@ def admin_dashboard_view(request):
 
     pending_count = BorrowRequest.objects.filter(status='รอการอนุมัติ').count()
     return_pending_count = BorrowRequest.objects.filter(status='รอตรวจสอบการคืน').count()
-    active_count = BorrowRequest.objects.filter(status='อนุมัตดิ').count()
+    active_count = BorrowRequest.objects.filter(status='อนุมัติ').count()
     overdue_count = BorrowRequest.objects.filter(status='เกินกำหนด').count()
     total_request_count = BorrowRequest.objects.count()
 
