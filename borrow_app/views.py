@@ -643,14 +643,13 @@ def admin_manual_request_view(request):
         selected_equipment_ids = request.POST.getlist('equipment_ids')
 
         user = User.objects.filter(username=borrower_name).first() or request.user
-        start_datetime = f"{start_date} {start_time}".strip()
         req_num = f"REQ-{uuid.uuid4().hex[:8].upper()}"
 
         borrow_request = BorrowRequest.objects.create(
             request_number=req_num,
             user=user,
-            start_datetime=start_datetime,
-            end_datetime=end_date,
+            start_datetime=_parse_date(start_date),
+            end_datetime=_parse_date(end_date),
             purpose=f"[ผู้ขอยืม: {borrower_name} / สังกัด: {department}] {purpose}",
             location=location,
             status='อนุมัติ'
