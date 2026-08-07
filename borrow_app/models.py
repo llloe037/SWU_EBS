@@ -2,6 +2,7 @@ from datetime import datetime
 import datetime as dt
 
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User
 
 class EquipmentGroup(models.Model):
