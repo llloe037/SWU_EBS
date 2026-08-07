@@ -57,9 +57,9 @@
                         <td class="py-4 px-4 text-gray-700">{{ item.start_datetime }}</td>
                         <td class="py-4 px-4 font-semibold text-gray-800 max-w-xs truncate">{{ item.items_summary }}</td>
                         <td class="py-4 px-4 text-gray-600 max-w-xs truncate">{{ item.location }}</td>
-                        <td class="py-4 px-4 text-gray-700">{{ item.approved_by.get_full_name|default:item.approved_by.username|default:'-' }}</td>
+                        <td class="py-4 px-4 text-gray-700">{{ item.approved_by_display }}</td>
                         <td class="py-4 px-4 text-gray-700">{{ item.returned_at|date:"d/m/Y H:i"|default:'-' }}</td>
-                        <td class="py-4 px-4 text-gray-700">{{ item.received_by.get_full_name|default:item.received_by.username|default:'-' }}</td>
+                        <td class="py-4 px-4 text-gray-700">{{ item.received_by_display }}</td>
                         <td class="py-4 px-4 text-center">
                             <span class="inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-bold {{ item.badge_style }}">
                                 {{ item.status }}

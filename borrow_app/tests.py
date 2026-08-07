@@ -103,14 +103,14 @@ class HomePageBorrowFlowTests(TestCase):
         self.assertRedirects(response, reverse('borrow_app:request_form'))
         self.assertEqual(self.client.session['borrow_cart'][0]['name'], self.equipment.name)
 
-    def test_home_page_hides_summary_cards_when_equipment_type_selected(self):
+    def test_home_page_always_shows_type_summary_cards(self):
         self.client.login(username='borrower', password='secret123')
 
-        response = self.client.get(reverse('borrow_app:home'), {'equipment_type': 'คอมพิวเตอร์|Laptop'})
+        response = self.client.get(reverse('borrow_app:home'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'เลือกประเภทแล้ว')
-        self.assertNotContains(response, 'ประเภทอุปกรณ์ที่พร้อมให้ยืม')
+        self.assertContains(response, 'name="item_category"')
+        self.assertContains(response, 'name="item_name"')
 
 
 class BorrowRequestWorkflowTests(TestCase):
