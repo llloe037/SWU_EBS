@@ -18,6 +18,7 @@
                         <th class="py-3.5 px-4">สถานที่นำไปใช้</th>
                         <th class="py-3.5 px-4">กำหนดส่งคืน</th>
                         <th class="py-3.5 px-4 text-center">สถานะ</th>
+                        <th class="py-3.5 px-4">รายละเอียด</th>
                         <th class="py-3.5 px-4 text-center">จัดการ</th>
                     </tr>
                 </thead>
@@ -33,6 +34,15 @@
                             <span class="inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-bold {{ item.badge_style }}">
                                 {{ item.status }}
                             </span>
+                        </td>
+                        <td class="py-4 px-4 text-gray-700 max-w-[220px]">
+                            {% if item.status == 'คืนไม่ครบ' and item.return_incomplete_comment %}
+                            <div class="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+                                {{ item.return_incomplete_comment }}
+                            </div>
+                            {% else %}
+                            <span class="text-gray-400">-</span>
+                            {% endif %}
                         </td>
                         
                         <!-- 🟢 แก้ไขการเรียกใช้ชื่อตัวแปรจาก req เป็น item -->
@@ -68,7 +78,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="py-8 text-center text-gray-400">ยังไม่มีรายการคำร้องขอยืมในขณะนี้</td>
+                        <td colspan="8" class="py-8 text-center text-gray-400">ยังไม่มีรายการคำร้องขอยืมในขณะนี้</td>
                     </tr>
                     {% endfor %}
                 </tbody>

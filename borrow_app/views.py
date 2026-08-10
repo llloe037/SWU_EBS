@@ -590,8 +590,11 @@ def admin_manage_requests_view(request):
             if action == 'approve':
                 borrow_req.mark_return_completed(request.user)
             else:
-                borrow_req.status = 'คืนไม่ครบ'
-                borrow_req.save(update_fields=['status'])
+                comment = request.POST.get('return_incomplete_comment', '').strip()
+                if not comment:
+                    messages.error(request, 'กรุณาระบุคอมเมนต์ก่อนแจ้งว่าคืนอุปกรณ์ไม่ครบ')
+                    return redirect('borrow_app:admin_manage_requests')
+                borrow_req.mark_return_incomplete(comment)
 
         return redirect('borrow_app:admin_manage_requests')
 

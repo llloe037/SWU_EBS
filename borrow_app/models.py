@@ -104,6 +104,7 @@ class BorrowRequest(models.Model):
     approved_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_requests', verbose_name="ผู้อนุมัติ")
     reject_reason = models.TextField(blank=True, null=True, verbose_name="เหตุผลที่ไม่อนุมัติ")
     return_note = models.TextField(blank=True, null=True, verbose_name="หมายเหตุการคืน")
+    return_incomplete_comment = models.TextField(blank=True, null=True, verbose_name="ความเห็นกรณีคืนไม่ครบ")
     return_image = models.ImageField(upload_to='return_evidence/', blank=True, null=True, verbose_name="รูปหลักฐานการคืน")
     returned_at = models.DateTimeField(null=True, blank=True, verbose_name="วันที่คืน")
     received_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='received_returns', verbose_name="ผู้รับคืน")
@@ -163,6 +164,16 @@ class BorrowRequest(models.Model):
             user=self.user,
             borrow_request=self,
             message=f'การคืนอุปกรณ์ในคำร้อง {self.request_number} ได้รับการยืนยันเรียบร้อยแล้ว',
+        )
+
+    def mark_return_incomplete(self, comment):
+        self.status = 'คืนไม่ครบ'
+        self.return_incomplete_comment = comment
+        self.save(update_fields=['status', 'return_incomplete_comment'])
+        Notification.objects.create(
+            user=self.user,
+            borrow_request=self,
+            message=f'คำขอคืน {self.request_number} ยังคืนไม่ครบ: {comment}',
         )
 
     def refresh_status(self, now=None):

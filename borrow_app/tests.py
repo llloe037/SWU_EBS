@@ -172,6 +172,46 @@ class BorrowRequestWorkflowTests(TestCase):
         self.assertEqual(self.equipment.status, 'พร้อมให้ยืม')
         self.assertEqual(self.equipment.available_quantity, 2)
 
+    def test_admin_can_add_comment_when_marking_return_incomplete(self):
+        admin = User.objects.create_superuser(username='admin', password='secret123')
+        self.request.status = 'รอตรวจสอบการคืน'
+        self.request.save(update_fields=['status'])
+
+        self.client.login(username='admin', password='secret123')
+        response = self.client.post(reverse('borrow_app:admin_manage_requests'), {
+            'request_id': self.request.id,
+            'action': 'reject',
+            'return_incomplete_comment': 'ยังไม่ได้คืนสายชาร์จ',
+        })
+
+        self.assertRedirects(response, reverse('borrow_app:admin_manage_requests'))
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, 'คืนไม่ครบ')
+        self.assertEqual(self.request.return_incomplete_comment, 'ยังไม่ได้คืนสายชาร์จ')
+
+        self.client.login(username='borrower', password='secret123')
+        response = self.client.get(reverse('borrow_app:my_requests'))
+        self.assertContains(response, 'ยังไม่ได้คืนสายชาร์จ')
+
+        response = self.client.get(reverse('borrow_app:return_request', args=[self.request.request_number]))
+        self.assertContains(response, 'ยังไม่ได้คืนสายชาร์จ')
+
+    def test_admin_must_add_comment_when_marking_return_incomplete(self):
+        User.objects.create_superuser(username='admin', password='secret123')
+        self.request.status = 'รอตรวจสอบการคืน'
+        self.request.save(update_fields=['status'])
+
+        self.client.login(username='admin', password='secret123')
+        response = self.client.post(reverse('borrow_app:admin_manage_requests'), {
+            'request_id': self.request.id,
+            'action': 'reject',
+            'return_incomplete_comment': '',
+        }, follow=True)
+
+        self.assertContains(response, 'กรุณาระบุคอมเมนต์ก่อนแจ้งว่าคืนอุปกรณ์ไม่ครบ')
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, 'รอตรวจสอบการคืน')
+
     def test_overdue_status_updates_when_due_date_has_passed(self):
         yesterday = datetime.now().date() - timedelta(days=1)
         self.request.status = 'อนุมัติ'

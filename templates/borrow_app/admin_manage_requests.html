@@ -233,15 +233,18 @@
                                 {% endif %}
                             </td>
                             <td class="p-3 text-center">
-                                <form method="POST" class="inline-flex gap-2">
+                                <form method="POST" class="space-y-2">
                                     {% csrf_token %}
                                     <input type="hidden" name="request_id" value="{{ req.id }}">
-                                    <button type="submit" name="action" value="approve" class="px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 font-bold">
-                                        คืนสำเร็จ
-                                    </button>
-                                    <button type="submit" name="action" value="reject" class="px-3 py-1 bg-amber-500 text-white rounded hover:bg-amber-600 font-bold">
-                                        คืนไม่ครบ
-                                    </button>
+                                    <textarea name="return_incomplete_comment" rows="2" maxlength="500" class="w-full min-w-48 rounded border border-gray-300 px-2 py-1 text-xs" placeholder="ระบุรายการหรือเหตุผลที่คืนไม่ครบ"></textarea>
+                                    <div class="flex justify-center gap-2">
+                                        <button type="submit" name="action" value="approve" class="px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 font-bold">
+                                            คืนสำเร็จ
+                                        </button>
+                                        <button type="submit" name="action" value="reject" class="px-3 py-1 bg-amber-500 text-white rounded hover:bg-amber-600 font-bold">
+                                            คืนไม่ครบ
+                                        </button>
+                                    </div>
                                 </form>
                             </td>
                         </tr>
