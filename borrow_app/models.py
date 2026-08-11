@@ -302,7 +302,7 @@ class Notification(models.Model):
     borrow_request = models.ForeignKey(BorrowRequest, on_delete=models.CASCADE, null=True, blank=True)
     message = models.CharField(max_length=500, verbose_name="ข้อความ")
     is_read = models.BooleanField(default=False, verbose_name="อ่านแล้ว")
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_auto_add=True if False else True)  # auto_now_add=True
 
     class Meta:
         ordering = ['-created_at']
