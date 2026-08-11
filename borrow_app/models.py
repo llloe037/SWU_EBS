@@ -65,7 +65,6 @@ class Equipment(models.Model):
     last_synced_at = models.DateTimeField(auto_now=True, verbose_name="อัปเดตข้อมูลล่าสุด")
 
     def save(self, *args, **kwargs):
-        # รวม assetNoMain-assetNoSub เป็น code ให้อัตโนมัติกรณี Import ข้อมูล SSMS เข้ามา
         if not self.code and self.asset_no_main:
             sub = self.asset_no_sub if self.asset_no_sub else "0001"
             self.code = f"{self.asset_no_main}-{sub}"
@@ -160,6 +159,13 @@ class BorrowRequest(models.Model):
                 item.equipment.status = 'พร้อมให้ยืม'
                 item.equipment.available_quantity += item.quantity
                 item.equipment.save(update_fields=['status', 'available_quantity'])
+                
+            # อัปเดตสถานะของไอเทมย่อยด้วย
+            item.return_status = 'คืนแล้ว'
+            item.return_condition = item.return_condition or 'ปกติ'
+            item.returned_at = timezone.now()
+            item.save(update_fields=['return_status', 'return_condition', 'returned_at'])
+
         Notification.objects.create(
             user=self.user,
             borrow_request=self,
@@ -206,7 +212,6 @@ class BorrowRequest(models.Model):
             return '-'
         return self.received_by.get_full_name() or self.received_by.username
 
-    # สรุปชื่อรายการอุปกรณ์สำหรับแสดงในตาราง
     @property
     def items_summary(self):
         items = list(self.items.all())
@@ -217,7 +222,6 @@ class BorrowRequest(models.Model):
             return ", ".join(names)
         return f"{names[0]}, {names[1]} และอื่นๆ {len(names)-2} รายการ"
 
-    # สี Badge ของสถานะ
     @property
     def badge_style(self):
         styles = {
@@ -231,7 +235,6 @@ class BorrowRequest(models.Model):
         }
         return styles.get(self.status, 'bg-gray-50 text-gray-700 border-gray-300')
 
-    # ไอคอนของสถานะ
     @property
     def icon(self):
         icons = {
@@ -247,6 +250,14 @@ class BorrowRequest(models.Model):
 
 
 class BorrowItem(models.Model):
+    RETURN_STATUS_CHOICES = [
+        ('ยังไม่คืน', 'ยังไม่คืน'),
+        ('รอตรวจรับ', 'รอตรวจรับ'),
+        ('คืนแล้ว', 'คืนแล้ว'),
+        ('ชำรุด', 'ชำรุด'),
+        ('สูญหาย', 'สูญหาย'),
+    ]
+
     borrow_request = models.ForeignKey(BorrowRequest, related_name='items', on_delete=models.CASCADE)
     equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE, null=True, blank=True, verbose_name="อุปกรณ์ที่จัดสรร")
     item_id = models.CharField(max_length=50, null=True, blank=True)
@@ -254,6 +265,23 @@ class BorrowItem(models.Model):
     requested_category = models.CharField(max_length=100, null=True, blank=True, verbose_name="หมวดหมู่ที่ขอยืม")
     item_type = models.CharField(max_length=50, null=True, blank=True)
     quantity = models.IntegerField(default=1)
+
+    # --- ฟิลด์เพิ่มเติมสำหรับการคืนรายชิ้น (ใส่ default และ null=True เพื่อกัน IntegrityError) ---
+    return_status = models.CharField(
+        max_length=50, 
+        choices=RETURN_STATUS_CHOICES, 
+        default='ยังไม่คืน', 
+        verbose_name="สถานะการคืนรายชิ้น"
+    )
+    return_condition = models.CharField(
+        max_length=50, 
+        choices=[('ปกติ', 'ปกติ'), ('ชำรุด', 'ชำรุด'), ('สูญหาย', 'สูญหาย')], 
+        null=True, 
+        blank=True, 
+        verbose_name="สภาพอุปกรณ์ตอนคืน"
+    )
+    return_comment = models.TextField(null=True, blank=True, verbose_name="หมายเหตุการคืนรายชิ้น")
+    returned_at = models.DateTimeField(null=True, blank=True, verbose_name="วันที่คืนรายการนี้")
 
     def available_equipment_options(self):
         filters = Q(status__in=['พร้อมให้ยืม', 'พร้อมใช้งาน'], available_quantity__gt=0)
@@ -265,8 +293,8 @@ class BorrowItem(models.Model):
 
     def __str__(self):
         if self.equipment:
-            return f"{self.equipment.name} (x{self.quantity})"
-        return f"{self.item_name} (x{self.quantity})"
+            return f"{self.equipment.name} (x{self.quantity}) - {self.return_status}"
+        return f"{self.item_name} (x{self.quantity}) - {self.return_status}"
 
 
 class Notification(models.Model):
