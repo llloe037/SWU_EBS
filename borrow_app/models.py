@@ -266,7 +266,7 @@ class BorrowItem(models.Model):
     item_type = models.CharField(max_length=50, null=True, blank=True)
     quantity = models.IntegerField(default=1)
 
-    # --- ฟิลด์เพิ่มเติมสำหรับการคืนรายชิ้น (ใส่ default และ null=True เพื่อกัน IntegrityError) ---
+    # --- ฟิลด์เพิ่มเติมสำหรับการคืนรายชิ้น ---
     return_status = models.CharField(
         max_length=50, 
         choices=RETURN_STATUS_CHOICES, 
@@ -302,7 +302,7 @@ class Notification(models.Model):
     borrow_request = models.ForeignKey(BorrowRequest, on_delete=models.CASCADE, null=True, blank=True)
     message = models.CharField(max_length=500, verbose_name="ข้อความ")
     is_read = models.BooleanField(default=False, verbose_name="อ่านแล้ว")
-    created_at = models.DateTimeField(auto_auto_add=True if False else True)  # auto_now_add=True
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="วันที่สร้าง")
 
     class Meta:
         ordering = ['-created_at']

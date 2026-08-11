@@ -1,38 +1,64 @@
+import os
+import pyodbc
 import pandas as pd
 from django.core.management.base import BaseCommand
 from borrow_app.models import Equipment
+from dotenv import load_dotenv
+
+# โหลดค่าจากไฟล์ .env
+load_dotenv()
 
 class Command(BaseCommand):
-    help = 'นำเข้าข้อมูลอุปกรณ์จากไฟล์ Excel ของ SSMS'
-
-    def add_arguments(self, parser):
-        # รับ Path ของไฟล์ Excel เช่น python manage.py import_ssms ssms_data.xlsx
-        parser.add_argument('excel_file', type=str, help='Path ไฟล์ Excel ของ SSMS')
+    help = 'ดึงข้อมูลอุปกรณ์ตรงจากฐานข้อมูล SSMS (SQL Server)'
 
     def handle(self, *args, **options):
-        file_path = options['excel_file']
-        
+        # 1. ดึงค่าการเชื่อมต่อจาก Environment Variables
+        db_host = os.getenv('SSMS_DB_HOST', '10.1.21.151')
+        db_name = os.getenv('SSMS_DB_NAME', 'SWU_EBS')
+        db_user = os.getenv('SSMS_DB_USER', '')
+        db_pass = os.getenv('SSMS_DB_PASSWORD', '')
+        table_name = os.getenv('SSMS_TABLE_NAME', 'dbo.asset')
+
+        # 2. Connection String ปรับข้าม SSL Check และรองรับพอร์ตมาตรฐาน
+        conn_str = (
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+            f"SERVER={db_host};"
+            f"DATABASE={db_name};"
+            f"UID={db_user};"
+            f"PWD={db_pass};"
+            f"Encrypt=no;"
+            f"TrustServerCertificate=yes;"
+        )
+
         try:
-            # อ่านไฟล์ Excel
-            df = pd.read_excel(file_path)
+            self.stdout.write(f"กำลังเชื่อมต่อไปยังฐานข้อมูล SSMS ({db_host})...")
+            # ขยาย timeout เป็น 30 วินาที
+            conn = pyodbc.connect(conn_str, timeout=30)
             
+            # ใช้ WITH (NOLOCK) เพื่อป้องกันการล็อกตารางในระบบ SSMS
+            query = f"SELECT * FROM {table_name} WITH (NOLOCK)"
+            
+            self.stdout.write("กำลังดึงข้อมูล...")
+            df = pd.read_sql(query, conn)
+            conn.close()
+
             # ลบช่องว่างหัวคอลัมน์
             df.columns = df.columns.str.strip()
-            
+
             count_created = 0
             count_updated = 0
 
+            # 3. ประมวลผลข้อมูลบันทึกลง Django DB
             for _, row in df.iterrows():
                 main_no = str(row.get('assetNoMain', '')).strip() if pd.notna(row.get('assetNoMain')) else ''
                 sub_no = str(row.get('assetNoSub', '0001')).strip() if pd.notna(row.get('assetNoSub')) else '0001'
-                
-                # ถ้าไม่มี assetNoMain ให้ใช้ inventoryNo หรือ seqNo แทน
+
                 if main_no:
                     code = f"{main_no}-{sub_no}"
                 else:
                     code = str(row.get('inventoryNo', row.get('seqNo', ''))).strip()
 
-                if not code:
+                if not code or code == 'nan':
                     continue
 
                 total_qty = int(row.get('quantity', 1)) if pd.notna(row.get('quantity')) else 1
@@ -64,7 +90,7 @@ class Command(BaseCommand):
                 else:
                     count_updated += 1
 
-            self.stdout.write(self.style.SUCCESS(f'นำเข้าข้อมูลสำเร็จ! เพิ่มใหม่ {count_created} รายการ / อัปเดต {count_updated} รายการ'))
+            self.stdout.write(self.style.SUCCESS(f'Sync ข้อมูลจาก SSMS เรียบร้อย! เพิ่มใหม่ {count_created} / อัปเดต {count_updated} รายการ'))
 
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'เกิดข้อผิดพลาด: {str(e)}'))
+            self.stdout.write(self.style.ERROR(f'เกิดข้อผิดพลาดในการดึงข้อมูล: {str(e)}'))
