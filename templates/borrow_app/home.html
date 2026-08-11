@@ -74,15 +74,12 @@
                 <p class="text-sm text-slate-500 mb-6">มีทั้งหมด {{ item.total_count }} ชิ้น</p>
                 <div class="mt-auto">
                     {% if item.available_count > 0 %}
-                    <form action="{% url 'borrow_app:add_to_cart' %}" method="POST">
-                        {% csrf_token %}
-                        <input type="hidden" name="item_category" value="{{ item.category }}">
-                        <input type="hidden" name="item_name" value="{{ item.name }}">
-                        <input type="hidden" name="quantity" value="1">
-                        <button type="submit" class="w-full bg-[#9e1b32] text-white text-sm font-semibold px-3 py-2.5 rounded-lg hover:bg-[#7a1527] transition-colors">
-                            เพิ่มลงคำร้อง
-                        </button>
-                    </form>
+                    <!-- 🟢 เปลี่ยนเป็นปุ่มเปิด Modal แทนการฟอร์มส่งข้อมูลโดยตรง -->
+                    <button type="button" 
+                            onclick="openBundleModal('{{ item.asset_no_main|escapejs }}', '{{ item.category|escapejs }}', '{{ item.name|escapejs }}')" 
+                            class="w-full bg-[#9e1b32] text-white text-sm font-semibold px-3 py-2.5 rounded-lg hover:bg-[#7a1527] transition-colors">
+                        เพิ่มลงคำร้อง
+                    </button>
                     {% else %}
                     <div class="w-full text-center text-sm text-gray-400 py-2">ไม่มีอุปกรณ์ในขณะนี้</div>
                     {% endif %}
@@ -98,4 +95,183 @@
     </div>
 </div>
 
+<!-- 🟢 Modal สำหรับเลือกรายการอุปกรณ์ย่อย (Bundle) -->
+<div id="bundleModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-2xl overflow-hidden border border-gray-100">
+        <div class="bg-[#9e1b32] text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-bold">เลือกรายการอุปกรณ์ย่อยในชุด</h3>
+            <button onclick="closeBundleModal()" class="text-white/80 hover:text-white text-2xl font-bold leading-none">&times;</button>
+        </div>
+        
+        <div class="p-6">
+            <div id="bundleLoading" class="text-center py-8 text-gray-500">
+                <svg class="animate-spin h-8 w-8 text-[#9e1b32] mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                กำลังโหลดข้อมูลชุดอุปกรณ์...
+            </div>
+            
+            <div id="bundleContent" class="hidden">
+                <form id="bundleBorrowForm" action="{% url 'borrow_app:add_to_cart' %}" method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <span class="text-xs bg-red-100 text-[#9e1b32] px-2.5 py-0.5 rounded-full font-semibold">รายการหลัก</span>
+                        <h4 id="mainItemName" class="font-bold text-gray-800 text-base mt-1"></h4>
+                        <p id="mainItemCode" class="text-xs text-gray-500 mt-0.5"></p>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-2 px-1">
+                        <label class="font-bold text-gray-700 text-sm">ส่วนประกอบย่อยในเซ็ต:</label>
+                        <button type="button" id="selectAllBtn" onclick="toggleSelectAll()" class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                            เลือกทั้งหมด
+                        </button>
+                    </div>
+
+                    <div id="subItemsList" class="max-h-56 overflow-y-auto border rounded-lg divide-y bg-white">
+                        <!-- JS จะนำรายการย่อยมาแสดงตรงนี้ -->
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button type="button" onclick="closeBundleModal()" class="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm">
+                            ยกเลิก
+                        </button>
+                        <button type="submit" class="px-5 py-2 bg-[#9e1b32] text-white rounded-lg hover:bg-[#7a1527] font-semibold text-sm shadow-sm transition-colors">
+                            เพิ่มลงรายการยืม
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let isAllSelected = true;
+
+// ส่งข้อมูลเข้าคำร้องกรณีไม่มีชุดอุปกรณ์ย่อย
+function addToCartDirectly(category, name) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{% url 'borrow_app:add_to_cart' %}";
+
+    const fields = {
+        'csrfmiddlewaretoken': '{{ csrf_token }}',
+        'item_category': category,
+        'item_name': name,
+        'quantity': 1
+    };
+
+    for (const [key, value] of Object.entries(fields)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function openBundleModal(assetNoMain, fallbackCategory = '', fallbackName = '') {
+    const modal = document.getElementById('bundleModal');
+    const loadingState = document.getElementById('bundleLoading');
+    const contentState = document.getElementById('bundleContent');
+
+    if (modal) modal.classList.remove('hidden');
+    if (loadingState) loadingState.classList.remove('hidden');
+    if (contentState) contentState.classList.add('hidden');
+
+    let cleanAssetNo = '';
+    if (assetNoMain && assetNoMain !== 'None') {
+        cleanAssetNo = assetNoMain.split(',')[0].trim();
+    }
+
+    if (!cleanAssetNo) {
+        if (modal) modal.classList.add('hidden');
+        addToCartDirectly(fallbackCategory, fallbackName);
+        return;
+    }
+
+    fetch(`/api/bundle/${encodeURIComponent(cleanAssetNo)}/`)
+        .then(response => {
+            if (!response.ok) throw new Error('API Error');
+            return response.json();
+        })
+        .then(data => {
+            // หากไม่มีอุปกรณ์ย่อย ให้เพิ่มลงคำร้องทันที
+            if (!data.sub_items || data.sub_items.length === 0) {
+                if (modal) modal.classList.add('hidden');
+                const name = (data.main_item && data.main_item.name) ? data.main_item.name : fallbackName;
+                const category = (data.main_item && data.main_item.category) ? data.main_item.category : fallbackCategory;
+                addToCartDirectly(category, name);
+                return;
+            }
+
+            // แสดงข้อมูลใน Modal
+            renderBundleModalData(data);
+
+            if (loadingState) loadingState.classList.add('hidden');
+            if (contentState) contentState.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Bundle Error:', error);
+            if (modal) modal.classList.add('hidden');
+            addToCartDirectly(fallbackCategory, fallbackName);
+        });
+}
+
+// 🟢 วาด UI ลง Element ID ที่ถูกต้องใน home.html
+function renderBundleModalData(data) {
+    const mainNameEl = document.getElementById('mainItemName');
+    const mainCodeEl = document.getElementById('mainItemCode');
+    const subListContainer = document.getElementById('subItemsList');
+
+    if (mainNameEl && data.main_item) {
+        mainNameEl.textContent = data.main_item.name || '-';
+    }
+    if (mainCodeEl && data.main_item) {
+        mainCodeEl.textContent = `รหัส: ${data.main_item.code || '-'}`;
+    }
+
+    if (subListContainer && data.sub_items) {
+        subListContainer.innerHTML = '';
+        data.sub_items.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 m-2';
+            itemDiv.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <input type="checkbox" name="selected_sub_items" value="${item.code}" checked class="sub-item-checkbox w-4 h-4 text-[#9e1b32] rounded border-gray-300 focus:ring-[#9e1b32]">
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">${item.name}</p>
+                        <p class="text-xs text-gray-500">รหัส: ${item.code}</p>
+                    </div>
+                </div>
+            `;
+            subListContainer.appendChild(itemDiv);
+        });
+    }
+
+    isAllSelected = true;
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    if (selectAllBtn) selectAllBtn.innerText = 'เลือกทั้งหมด';
+}
+
+function closeBundleModal() {
+    const modal = document.getElementById('bundleModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function toggleSelectAll() {
+    const checkboxes = document.querySelectorAll('.sub-item-checkbox');
+    isAllSelected = !isAllSelected;
+    checkboxes.forEach(cb => cb.checked = isAllSelected);
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    if (selectAllBtn) {
+        selectAllBtn.innerText = isAllSelected ? 'ยกเลิกการเลือกทั้งหมด' : 'เลือกทั้งหมด';
+    }
+}
+</script>
 {% endblock %}

@@ -243,6 +243,7 @@ class BorrowItem(models.Model):
     requested_category = models.CharField(max_length=100, null=True, blank=True, verbose_name="หมวดหมู่ที่ขอยืม")
     item_type = models.CharField(max_length=50, null=True, blank=True)
     quantity = models.IntegerField(default=1)
+    return_status = models.CharField(max_length=50, default='ยังไม่คืน')
 
     def available_equipment_options(self):
         filters = Q(status__in=['พร้อมให้ยืม', 'พร้อมใช้งาน'], available_quantity__gt=0)

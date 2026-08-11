@@ -8,6 +8,7 @@ urlpatterns = [
     path('request/', views.request_form_view, name='request_form'),  # 🟢 แก้ตรงนี้จาก 'request-form' เป็น 'request_form'
     path('request/summary/', views.request_summary_view, name='request_summary'),
     path('request/confirm/', views.confirm_request_view, name='confirm_request'),
+    path('api/bundle/<str:asset_no_main>/', views.bundle_detail_api, name='bundle_detail_api'),
     path('add-to-cart/', views.add_to_cart_view, name='add_to_cart'),
     path('add-group-to-cart/<str:group_id>/', views.add_group_to_cart_view, name='add_group_to_cart'),
     path('remove-from-cart/<int:index>/', views.remove_from_cart_view, name='remove_from_cart'),
