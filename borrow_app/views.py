@@ -157,6 +157,17 @@ def fetch_ssms_grouped_equipments(query='', category=''):
         WHERE 1=1{where_clause}
         ORDER BY TRY_CAST(assetNoMain AS BIGINT), TRY_CAST(assetNoSub AS INT)
     """
+    #ดึงรายการ asset_no_main ที่ถูกยืมหรือของหมดใน Local DB มาลง set
+    unavailable_eqs = Equipment.objects.filter(
+        Q(status__in=['กำลังถูกยืม', 'ติดยืม', 'อยู่ระหว่างซ่อม', 'ชำรุด', 'ถูกยืม']) | 
+        Q(available_quantity__lte=0)
+    )
+    unavailable_mains = set()
+    for eq in unavailable_eqs:
+        if eq.asset_no_main:
+            unavailable_mains.add(str(eq.asset_no_main).strip())
+        if eq.code and '-' in eq.code:
+            unavailable_mains.add(eq.code.split('-')[0].strip())
 
     local_avail_map = {}
     local_qs = Equipment.objects.values('category', 'name').annotate(
@@ -203,7 +214,6 @@ def fetch_ssms_grouped_equipments(query='', category=''):
 
     # 2a. ประมวลผลกลุ่ม Bundle
     for main_no, item_rows in bundle_mains.items():
-        # เรียงลำดับหาเลข assetNoSub ที่น้อยที่สุด
         def get_sub_int(r):
             sub_str = str(r[1]).strip() if r[1] is not None else '999999'
             try:
@@ -212,10 +222,13 @@ def fetch_ssms_grouped_equipments(query='', category=''):
                 return 999999
 
         sorted_item_rows = sorted(item_rows, key=get_sub_int)
-        min_sub_item = sorted_item_rows[0] # ดึงตัวที่ assetNoSub ต่ำสุด
+        min_sub_item = sorted_item_rows[0]
         
         bundle_title = (min_sub_item[2] or 'ไม่ระบุชื่อ').strip()
         acc_determ = (min_sub_item[3] or 'ทั่วไป').strip()
+
+        #เช็คสถานะยืม ถ้าอยู่ใน unavailable_mains ให้คงเหลือเป็น 0
+        is_bundle_avail = 0 if main_no in unavailable_mains else 1
 
         key = f"BUNDLE_{main_no}"
         grouped_dict[key] = {
@@ -224,8 +237,8 @@ def fetch_ssms_grouped_equipments(query='', category=''):
             'asset_description': f"{bundle_title} (ชุด)",
             'asset_no_main': main_no,
             'is_bundle': True,
-            'available_count': 1,
-            'total_count': 1,
+            'available_count': is_bundle_avail,
+            'total_count': len(item_rows),  # 🟢 เปลี่ยนจาก 1 เป็น len(item_rows) เพื่อบอกจำนวนชิ้นในชุด
         }
 
     # 2b. ประมวลผลกลุ่ม Single (รวมกลุ่มตาม Category + assetDescription)
@@ -1048,7 +1061,7 @@ def sync_ssms_direct_view(request):
     try:
         with connections['ssms_db'].cursor() as cursor:
             cursor.execute("""
-                SELECT assetNoMain, assetNoSub, assetDescription, accountDeterm, inventoryNo, quantity
+                SELECT assetNoMain, assetNoSub, assetDescription, accountDeterm, inventoryNo
                 FROM dbo.asset
             """)
             rows = cursor.fetchall()
@@ -1067,7 +1080,7 @@ def sync_ssms_direct_view(request):
                 name = str(row[2]).strip() if row[2] else 'ไม่ระบุชื่อ'
                 category = str(row[3]).strip() if row[3] else 'ทั่วไป'
                 inventory_no = str(row[4]).strip() if row[4] else ''
-                quantity = int(row[5]) if row[5] is not None else 1
+                quantity = 1
 
                 # 🟢 กำหนดรหัสเลขครุภัณฑ์ให้เป็นรูปแบบ assetNoMain-assetNoSub
                 if main_no:

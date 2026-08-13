@@ -63,20 +63,25 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-        {% for item in equipment_type_summary %}
+        {% for item in grouped_equipments %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
             <div class="p-5 flex flex-col h-full">
                 <div class="flex items-center justify-between mb-4">
-                    <span class="text-xs font-semibold text-slate-500">{{ item.category|default:"ทั่วไป" }}</span>
+                    <span class="text-xs font-semibold text-slate-500">{{ item.account_determ|default:"ทั่วไป" }}</span>
                     <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">พร้อม {{ item.available_count }}</span>
                 </div>
-                <h3 class="text-xl font-bold text-slate-900 mb-3 line-clamp-2">{{ item.name }}</h3>
-                <p class="text-sm text-slate-500 mb-6">มีทั้งหมด {{ item.total_count }} ชิ้น</p>
+                <h3 class="text-xl font-bold text-slate-900 mb-3 line-clamp-2">{{ item.asset_description }}</h3>
+                <p class="text-sm text-slate-500 mb-6">
+                    {% if item.is_bundle %}
+                        อุปกรณ์ในชุด {{ item.total_count }} รายการ
+                    {% else %}
+                        มีทั้งหมด {{ item.total_count }} ชิ้น
+                    {% endif %}
+                </p>
                 <div class="mt-auto">
                     {% if item.available_count > 0 %}
-                    <!-- 🟢 เปลี่ยนเป็นปุ่มเปิด Modal แทนการฟอร์มส่งข้อมูลโดยตรง -->
                     <button type="button" 
-                            onclick="openBundleModal('{{ item.asset_no_main|escapejs }}', '{{ item.category|escapejs }}', '{{ item.name|escapejs }}')" 
+                            onclick="openBundleModal('{{ item.asset_no_main|default:''|escapejs }}', '{{ item.account_determ|escapejs }}', '{{ item.asset_description|escapejs }}')" 
                             class="w-full bg-[#9e1b32] text-white text-sm font-semibold px-3 py-2.5 rounded-lg hover:bg-[#7a1527] transition-colors">
                         เพิ่มลงคำร้อง
                     </button>
