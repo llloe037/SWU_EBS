@@ -566,10 +566,27 @@ def cancel_request_view(request, request_id):
 def add_to_cart_view(request):
     if request.method == 'POST':
         selected_sub_items = request.POST.getlist('selected_sub_items')
+
+        #รับข้อมูลอุปกรณ์หลัก (Parent Bundle) จาก Form POST
+        main_item_code = request.POST.get('main_item_code', '').strip()
+        main_item_name = request.POST.get('main_item_name', '').strip()
+        main_item_category = request.POST.get('main_item_category', 'ชุดอุปกรณ์').strip()
+
         cart = list(request.session.get('borrow_cart', []))
 
+        #หากมีข้อมูลอุปกรณ์หลัก ให้ Push ลง Cart เป็นรายการแรกก่อน
+        if main_item_code or main_item_name:
+            eq_main = Equipment.objects.filter(code=main_item_code).first() if main_item_code else None
+            cart.append({
+                'code': main_item_code or (eq_main.code if eq_main else ''),
+                'category': eq_main.category if eq_main else main_item_category,
+                'name': f"{eq_main.name} (รหัส: {eq_main.code})" if eq_main else main_item_name,
+                'qty': 1,
+            })
+
         if selected_sub_items:
-            equipments = Equipment.objects.filter(code__in=selected_sub_items)
+            sub_codes = [code for code in selected_sub_items if code != main_item_code]
+            equipments = Equipment.objects.filter(code__in=sub_codes)
             eq_map = {eq.code: eq for eq in equipments}
 
             for code in selected_sub_items:
@@ -589,13 +606,12 @@ def add_to_cart_view(request):
                         'qty': 1,
                     })
 
-        else:
+        elif not (main_item_code or main_item_name):
             item_category = request.POST.get('item_category', '')
             item_name = request.POST.get('item_name', '')
             qty = request.POST.get('quantity', 1)
 
             if item_name:
-                # 🟢 ค้นหา Equipment ตัวแรกใน Local DB ที่พร้อมให้ยืมเพื่อเอา code มาผูก
                 eq_match = Equipment.objects.filter(
                     category=item_category,
                     name=item_name,
@@ -604,7 +620,7 @@ def add_to_cart_view(request):
                 ).first()
 
                 cart.append({
-                    'code': eq_match.code if eq_match else '',  # แนบ code อุปกรณ์ถ้ามี
+                    'code': eq_match.code if eq_match else '',
                     'category': item_category,
                     'name': item_name,
                     'qty': qty,
