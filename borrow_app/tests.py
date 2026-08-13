@@ -132,8 +132,8 @@ class BorrowRequestWorkflowTests(TestCase):
         self.request = BorrowRequest.objects.create(
             request_number='BR-001',
             user=self.user,
-            start_datetime=datetime(2026, 8, 7).date(),
-            end_datetime=datetime(2026, 8, 10).date(),
+            start_datetime=datetime.now().date(),
+            end_datetime=datetime.now().date() + timedelta(days=3),
             purpose='ทดสอบ',
             location='ห้องพัสดุ',
             pickup_method='รับด้วยตนเอง',
@@ -171,6 +171,49 @@ class BorrowRequestWorkflowTests(TestCase):
         self.assertIsNotNone(self.request.returned_at)
         self.assertEqual(self.equipment.status, 'พร้อมให้ยืม')
         self.assertEqual(self.equipment.available_quantity, 2)
+
+    def test_approve_rejects_when_quantity_is_not_available(self):
+        item = self.request.items.first()
+        item.quantity = 3
+        item.save(update_fields=['quantity'])
+
+        with self.assertRaises(ValueError):
+            self.request.approve(self.user, {str(item.id): str(self.equipment.id)})
+
+        self.request.refresh_from_db()
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.request.status, 'รอการอนุมัติ')
+        self.assertEqual(self.equipment.available_quantity, 2)
+
+    def test_partial_return_only_restores_selected_item(self):
+        second = Equipment.objects.create(
+            code='EQ-101', name='Projector', category=self.equipment.category,
+            status='พร้อมให้ยืม', total_quantity=1, available_quantity=1,
+        )
+        second_item = BorrowItem.objects.create(borrow_request=self.request, equipment=second, quantity=1)
+        first_item = self.request.items.first()
+        self.request.approve(self.user, {str(first_item.id): str(self.equipment.id), str(second_item.id): str(second.id)})
+
+        self.client.login(username='borrower', password='secret123')
+        response = self.client.post(reverse('borrow_app:return_request', args=[self.request.request_number]), {
+            'return_item_ids': [str(first_item.id)],
+            'return_note': 'คืนเฉพาะ Laptop',
+        })
+        self.assertRedirects(response, reverse('borrow_app:my_requests'))
+        first_item.refresh_from_db()
+        self.assertEqual(first_item.return_status, 'รอตรวจรับ')
+
+        admin = User.objects.create_superuser(username='admin-return', password='secret123')
+        self.client.login(username='admin-return', password='secret123')
+        response = self.client.post(reverse('borrow_app:admin_manage_requests'), {
+            'request_id': self.request.id, 'action': 'approve',
+            f'return_condition_{first_item.id}': 'ปกติ',
+        })
+        self.assertRedirects(response, reverse('borrow_app:admin_manage_requests'))
+        self.request.refresh_from_db(); self.equipment.refresh_from_db(); second.refresh_from_db()
+        self.assertEqual(self.request.status, 'คืนไม่ครบ')
+        self.assertEqual(self.equipment.available_quantity, 2)
+        self.assertEqual(second.available_quantity, 0)
 
     def test_admin_can_add_comment_when_marking_return_incomplete(self):
         admin = User.objects.create_superuser(username='admin', password='secret123')

@@ -1,6 +1,6 @@
 from datetime import datetime
 import datetime as dt
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.contrib.auth.models import User
 
@@ -24,6 +24,7 @@ class Equipment(models.Model):
         ('กำลังถูกยืม', 'กำลังถูกยืม'),
         ('อยู่ระหว่างซ่อม', 'อยู่ระหว่างซ่อม'),
         ('ชำรุด', 'ชำรุด'),
+        ('สูญหาย', 'สูญหาย'),
     ]
 
     # --- ฟิลด์เดิมในระบบ ---
@@ -113,18 +114,27 @@ class BorrowRequest(models.Model):
         return self.request_number
 
     def approve(self, approved_by_user, item_equipment_assignments=None):
-        self.status = 'อนุมัติ'
-        self.approved_by = approved_by_user
-        self.save(update_fields=['status', 'approved_by'])
         assignments = item_equipment_assignments or {}
-        for item in self.items.all():
-            eq_id = assignments.get(str(item.id))
-            equipment = Equipment.objects.filter(id=eq_id).first() if eq_id else item.equipment
-            if equipment:
+        with transaction.atomic():
+            items = list(self.items.select_for_update())
+            equipment_ids = [assignments.get(str(item.id), item.equipment_id) for item in items]
+            equipments = {
+                equipment.id: equipment
+                for equipment in Equipment.objects.select_for_update().filter(id__in=[id for id in equipment_ids if id])
+            }
+            for item in items:
+                equipment = equipments.get(int(assignments.get(str(item.id), item.equipment_id))) if assignments.get(str(item.id), item.equipment_id) else None
+                if not equipment or equipment.available_quantity < item.quantity:
+                    raise ValueError(f'อุปกรณ์ {item.item_name or item.equipment} มีจำนวนคงเหลือไม่เพียงพอ')
+            self.status = 'อนุมัติ'
+            self.approved_by = approved_by_user
+            self.save(update_fields=['status', 'approved_by'])
+            for item in items:
+                equipment = equipments[int(assignments.get(str(item.id), item.equipment_id))]
                 item.equipment = equipment
                 item.save(update_fields=['equipment'])
                 equipment.status = 'กำลังถูกยืม'
-                equipment.available_quantity = max(0, equipment.available_quantity - item.quantity)
+                equipment.available_quantity -= item.quantity
                 equipment.save(update_fields=['status', 'available_quantity'])
         Notification.objects.create(
             user=self.user,
@@ -169,6 +179,35 @@ class BorrowRequest(models.Model):
             borrow_request=self,
             message=f'การคืนอุปกรณ์ในคำร้อง {self.request_number} ได้รับการยืนยันเรียบร้อยแล้ว',
         )
+
+    def verify_pending_return_items(self, received_by_user, conditions, comment=''):
+        from django.utils import timezone
+        pending_items = list(self.items.filter(return_status='รอตรวจรับ').select_related('equipment'))
+        if not pending_items:
+            raise ValueError('ไม่พบรายการอุปกรณ์ที่รอตรวจรับ')
+        with transaction.atomic():
+            for item in pending_items:
+                condition = conditions.get(str(item.id), 'ปกติ')
+                item.return_condition = condition
+                item.return_status = 'คืนแล้ว' if condition == 'ปกติ' else condition
+                item.return_comment = comment
+                item.returned_at = timezone.now()
+                item.save(update_fields=['return_condition', 'return_status', 'return_comment', 'returned_at'])
+                if item.equipment:
+                    equipment = Equipment.objects.select_for_update().get(pk=item.equipment_id)
+                    if condition == 'ปกติ':
+                        equipment.available_quantity += item.quantity
+                        equipment.status = 'พร้อมให้ยืม'
+                    else:
+                        equipment.status = condition
+                    equipment.save(update_fields=['available_quantity', 'status'])
+            if self.items.filter(return_status__in=['ยังไม่คืน', 'รอตรวจรับ']).exists():
+                self.mark_return_incomplete(comment or 'ยังมีอุปกรณ์ที่รอส่งคืน')
+            else:
+                self.status = 'คืนสำเร็จ'
+                self.received_by = received_by_user
+                self.returned_at = timezone.now()
+                self.save(update_fields=['status', 'received_by', 'returned_at'])
 
     def mark_return_incomplete(self, comment):
         self.status = 'คืนไม่ครบ'

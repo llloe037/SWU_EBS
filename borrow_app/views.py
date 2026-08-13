@@ -683,9 +683,15 @@ def return_request_view(request, request_id):
 
     if request.method == 'POST':
         if borrow_req.status in ['อนุมัติ', 'เกินกำหนด', 'คืนไม่ครบ']:
+            selected_ids = request.POST.getlist('return_item_ids')
+            selected_items = borrow_req.items.filter(id__in=selected_ids, return_status='ยังไม่คืน')
+            if not selected_items.exists():
+                messages.error(request, 'กรุณาเลือกรายการอุปกรณ์ที่ต้องการคืนอย่างน้อย 1 รายการ')
+                return redirect('borrow_app:return_request', request_id=request_id)
             borrow_req.return_note = request.POST.get('return_note', '').strip()
             if request.FILES.get('return_image'):
                 borrow_req.return_image = request.FILES['return_image']
+            selected_items.update(return_status='รอตรวจรับ')
             borrow_req.status = 'รอตรวจสอบการคืน'
             borrow_req.save()
             messages.success(request, 'คำขอคืนอุปกรณ์ถูกส่งแล้ว โปรดรอการตรวจสอบจากผู้ดูแลระบบ')
@@ -693,7 +699,10 @@ def return_request_view(request, request_id):
             messages.warning(request, 'ไม่สามารถส่งคำขอคืนได้ในสถานะปัจจุบัน')
         return redirect('borrow_app:my_requests')
 
-    return render(request, 'borrow_app/return-form.html', {'borrow_req': borrow_req})
+    return render(request, 'borrow_app/return-form.html', {
+        'borrow_req': borrow_req,
+        'returnable_items': borrow_req.items.filter(return_status='ยังไม่คืน'),
+    })
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -756,14 +765,24 @@ def admin_manage_requests_view(request):
                     eq_id = request.POST.get(f'equipment_for_{item.id}', '')
                     if eq_id:
                         assignments[str(item.id)] = eq_id
-                borrow_req.approve(request.user, assignments)
+                try:
+                    borrow_req.approve(request.user, assignments)
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+                    return redirect('borrow_app:admin_manage_requests')
             else:
                 reason = request.POST.get('reject_reason', '').strip()
                 borrow_req.reject(reason)
 
         elif borrow_req.status == 'รอตรวจสอบการคืน':
             if action == 'approve':
-                borrow_req.mark_return_completed(request.user)
+                conditions = {
+                    str(item.id): request.POST.get(f'return_condition_{item.id}', 'ปกติ')
+                    for item in borrow_req.items.filter(return_status='รอตรวจรับ')
+                }
+                borrow_req.verify_pending_return_items(
+                    request.user, conditions, request.POST.get('return_incomplete_comment', '').strip()
+                )
             else:
                 comment = request.POST.get('return_incomplete_comment', '').strip()
                 if not comment:
@@ -1029,7 +1048,7 @@ def sync_ssms_direct_view(request):
     try:
         with connections['ssms_db'].cursor() as cursor:
             cursor.execute("""
-                SELECT assetNoMain, assetNoSub, assetDescription, accountDeterm, inventoryNo 
+                SELECT assetNoMain, assetNoSub, assetDescription, accountDeterm, inventoryNo, quantity
                 FROM dbo.asset
             """)
             rows = cursor.fetchall()
@@ -1048,6 +1067,7 @@ def sync_ssms_direct_view(request):
                 name = str(row[2]).strip() if row[2] else 'ไม่ระบุชื่อ'
                 category = str(row[3]).strip() if row[3] else 'ทั่วไป'
                 inventory_no = str(row[4]).strip() if row[4] else ''
+                quantity = int(row[5]) if row[5] is not None else 1
 
                 # 🟢 กำหนดรหัสเลขครุภัณฑ์ให้เป็นรูปแบบ assetNoMain-assetNoSub
                 if main_no:
@@ -1078,8 +1098,8 @@ def sync_ssms_direct_view(request):
                         asset_no_main=main_no,
                         asset_no_sub=sub_no,
                         inventory_no=inventory_no,
-                        total_quantity=1,
-                        available_quantity=1,
+                        total_quantity=quantity,
+                        available_quantity=quantity,
                         status='พร้อมให้ยืม'
                     )
                     count_created += 1

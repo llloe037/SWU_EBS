@@ -239,6 +239,20 @@
                                 <form method="POST" class="space-y-2">
                                     {% csrf_token %}
                                     <input type="hidden" name="request_id" value="{{ req.id }}">
+                                    <div class="space-y-1 text-left">
+                                        {% for item in req.items.all %}
+                                        {% if item.return_status == 'รอตรวจรับ' %}
+                                        <label class="block text-[11px] text-gray-700">
+                                            {{ item.equipment.name|default:item.item_name }}
+                                            <select name="return_condition_{{ item.id }}" class="ml-1 rounded border border-gray-300 px-1 py-0.5">
+                                                <option value="ปกติ">ปกติ</option>
+                                                <option value="ชำรุด">ชำรุด</option>
+                                                <option value="สูญหาย">สูญหาย</option>
+                                            </select>
+                                        </label>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
                                     <textarea name="return_incomplete_comment" rows="2" maxlength="500" class="w-full min-w-48 rounded border border-gray-300 px-2 py-1 text-xs" placeholder="ระบุรายการหรือเหตุผลที่คืนไม่ครบ"></textarea>
                                     <div class="flex justify-center gap-2">
                                         <button type="submit" name="action" value="approve" class="px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 font-bold">
