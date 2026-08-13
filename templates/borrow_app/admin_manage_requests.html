@@ -74,7 +74,7 @@
                                 <div class="text-[11px] text-gray-500 mt-1">{{ req.created_at|date:"Y-m-d H:i" }}</div>
                             </td>
                             <td class="p-3">
-                                <div class="font-semibold text-slate-800">{{ req.user.username }}</div>
+                                <div class="font-semibold text-slate-800">{{ req.user.get_full_name|default:req.user.username }}</div>
                                 <div class="text-[11px] text-gray-500">{{ req.location }}</div>
                             </td>
                             <td class="p-3">
@@ -87,6 +87,9 @@
                                     <span class="text-gray-400">x{{ item.quantity }}</span>
                                 </div>
                                 {% endfor %}
+                            </td>
+                            <td class="p-3 text-gray-700 max-w-xs truncate">
+                                {{ req.purpose }}
                             </td>
                             <td class="p-3">
                                 <div>{{ req.start_datetime }}</div>

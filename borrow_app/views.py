@@ -19,14 +19,25 @@ from django.db.models import Count, Q, Sum, Min
 from django.db import transaction
 
 
-def _parse_date(value):
-    if not value or value == '-':
+def _parse_date(date_str):
+    if not date_str:
         return None
-    for fmt in ('%Y-%m-%d', '%Y-%m-%dT%H:%M', '%Y-%m-%dT%H:%M:%S'):
+    
+    # รองรับทั้งแบบมี T (datetime-local) และแบบวันที่ล้วน
+    formats = [
+        '%Y-%m-%dT%H:%M',     # จาก <input type="datetime-local"> (เช่น 2026-08-13T10:30)
+        '%Y-%m-%dT%H:%M:%S',  # รูปแบบพร้อมวินาที
+        '%Y-%m-%d %H:%M',     # แบบมีเว้นวรรค
+        '%Y-%m-%d'            # แบบวันที่อย่างเดียว
+    ]
+    
+    for fmt in formats:
         try:
-            return datetime.strptime(value[:len(fmt)], fmt).date()
+            # แปลงเป็น datetime แล้วดึงเอาเฉพาะส่วนวันที่ (.date())
+            return datetime.strptime(str(date_str).strip(), fmt).date()
         except (ValueError, TypeError):
             continue
+            
     return None
 
 
@@ -141,35 +152,105 @@ def fetch_ssms_grouped_equipments(query='', category=''):
         where_clause = ' AND ' + where_clause
 
     sql = f"""
-        SELECT accountDeterm AS account_determ,
-               assetDescription AS asset_description,
-               COUNT(*) AS available_count,
-               COUNT(*) AS total_count
+        SELECT assetNoMain, assetNoSub, assetDescription, accountDeterm, inventoryNo
         FROM dbo.asset
         WHERE 1=1{where_clause}
-        GROUP BY accountDeterm, assetDescription
-        ORDER BY COUNT(*) DESC, accountDeterm, assetDescription
+        ORDER BY TRY_CAST(assetNoMain AS BIGINT), TRY_CAST(assetNoSub AS INT)
     """
+
+    local_avail_map = {}
+    local_qs = Equipment.objects.values('category', 'name').annotate(
+        total_avail=Sum('available_quantity')
+    )
+    for l in local_qs:
+        cat = (l['category'] or '').strip()
+        name = (l['name'] or '').strip()
+        key_name = f"{cat}|{name}"
+        local_avail_map[key_name] = l['total_avail'] or 0
 
     with connections['ssms_db'].cursor() as cursor:
         cursor.execute(sql, params)
         rows = cursor.fetchall()
 
-        grouped = []
-        for row in rows:
-            key = hashlib.md5(f"{row[0]}|{row[1]}".encode('utf-8')).hexdigest()
-            grouped.append({
-                'id': key,
-                'account_determ': row[0] or 'ทั่วไป',
-                'asset_description': row[1] or 'ไม่ระบุ',
-                'available_count': int(row[2] or 0),
-                'total_count': int(row[3] or 0),
-            })
-
         cursor.execute("SELECT DISTINCT accountDeterm FROM dbo.asset ORDER BY accountDeterm")
         categories = [row[0] for row in cursor.fetchall() if row[0]]
 
-    return categories, grouped
+    # Step 1: แยกกลุ่ม assetNoMain เพื่อตรวจว่าเป็น Bundle หรือ Single
+    main_no_groups = {}
+    no_main_rows = []
+
+    for row in rows:
+        main_no = str(row[0]).strip() if row[0] is not None else ''
+        if main_no:
+            main_no_groups.setdefault(main_no, []).append(row)
+        else:
+            no_main_rows.append(row)
+
+    bundle_mains = {}
+    single_rows = list(no_main_rows)
+
+    for main_no, item_rows in main_no_groups.items():
+        distinct_descs = set((r[2] or '').strip() for r in item_rows if r[2])
+        # Rule 2: assetNoMain เดียวกัน แต่ assetDescription ต่างกัน (>1 ชื่อ) -> จัดเป็น Bundle
+        if len(distinct_descs) > 1:
+            bundle_mains[main_no] = item_rows
+        # Rule 1 & 3: assetDescription เหมือนกันทั้งหมด (เช่น เก้าอี้ 10 ตัว) -> จัดเป็น Single
+        else:
+            single_rows.extend(item_rows)
+
+    # Step 2: สร้างการ์ดสำหรับแสดงผล
+    grouped_dict = {}
+
+    # 2a. ประมวลผลกลุ่ม Bundle
+    for main_no, item_rows in bundle_mains.items():
+        # เรียงลำดับหาเลข assetNoSub ที่น้อยที่สุด
+        def get_sub_int(r):
+            sub_str = str(r[1]).strip() if r[1] is not None else '999999'
+            try:
+                return int(sub_str)
+            except ValueError:
+                return 999999
+
+        sorted_item_rows = sorted(item_rows, key=get_sub_int)
+        min_sub_item = sorted_item_rows[0] # ดึงตัวที่ assetNoSub ต่ำสุด
+        
+        bundle_title = (min_sub_item[2] or 'ไม่ระบุชื่อ').strip()
+        acc_determ = (min_sub_item[3] or 'ทั่วไป').strip()
+
+        key = f"BUNDLE_{main_no}"
+        grouped_dict[key] = {
+            'id': key,
+            'account_determ': acc_determ,
+            'asset_description': f"{bundle_title} (ชุด)",
+            'asset_no_main': main_no,
+            'is_bundle': True,
+            'available_count': 1,
+            'total_count': 1,
+        }
+
+    # 2b. ประมวลผลกลุ่ม Single (รวมกลุ่มตาม Category + assetDescription)
+    for row in single_rows:
+        acc_determ = (row[3] or 'ทั่วไป').strip()
+        asset_desc = (row[2] or 'ไม่ระบุ').strip()
+        key_name = f"{acc_determ}|{asset_desc}"
+        key = hashlib.md5(key_name.encode('utf-8')).hexdigest()
+
+        if key not in grouped_dict:
+            avail_c = local_avail_map.get(key_name, 0)
+            grouped_dict[key] = {
+                'id': key,
+                'account_determ': acc_determ,
+                'asset_description': asset_desc,
+                'asset_no_main': None,
+                'is_bundle': False,
+                'available_count': avail_c,
+                'total_count': 0,
+            }
+        grouped_dict[key]['total_count'] += 1
+        if key_name not in local_avail_map:
+            grouped_dict[key]['available_count'] += 1
+
+    return categories, list(grouped_dict.values())
 
 
 def fetch_ssms_stats():
@@ -186,15 +267,28 @@ def fetch_ssms_stats():
     }
 
 
-def fetch_ssms_group_items(account_determ, asset_description):
-    sql = """
-        SELECT assetNoMain, assetNoSub, assetDescription, inventoryNo
-        FROM dbo.asset
-        WHERE accountDeterm = %s AND assetDescription = %s
-        ORDER BY TRY_CAST(assetNoMain AS BIGINT), TRY_CAST(assetNoSub AS INT)
-    """
+def fetch_ssms_group_items(account_determ, asset_description, asset_no_main=None):
+    if asset_no_main:
+        # หากเป็น Bundle ให้ดึงชิ้นส่วนย่อยทั้งหมดตาม assetNoMain
+        sql = """
+            SELECT assetNoMain, assetNoSub, assetDescription, inventoryNo, accountDeterm
+            FROM dbo.asset
+            WHERE assetNoMain = %s
+            ORDER BY TRY_CAST(assetNoSub AS INT)
+        """
+        params = [asset_no_main]
+    else:
+        # หากเป็น Single ให้ดึงรายการทั้งหมดตาม หมวดหมู่ + ชื่ออุปกรณ์
+        sql = """
+            SELECT assetNoMain, assetNoSub, assetDescription, inventoryNo, accountDeterm
+            FROM dbo.asset
+            WHERE accountDeterm = %s AND assetDescription = %s
+            ORDER BY TRY_CAST(assetNoMain AS BIGINT), TRY_CAST(assetNoSub AS INT)
+        """
+        params = [account_determ, asset_description]
+
     with connections['ssms_db'].cursor() as cursor:
-        cursor.execute(sql, [account_determ, asset_description])
+        cursor.execute(sql, params)
         rows = cursor.fetchall()
 
     items = []
@@ -202,13 +296,12 @@ def fetch_ssms_group_items(account_determ, asset_description):
     for row in rows:
         main_no = str(row[0]).strip() if row[0] is not None else ''
         sub_no = str(row[1]).strip() if row[1] is not None else '0'
-        
-        # 🟢 กำหนดรูปแบบรหัส assetNoMain-assetNoSub
         code = f"{main_no}-{sub_no}" if main_no else str(row[3] or '')
-        
+
         items.append({
             'code': code,
             'name': row[2] or 'ไม่ระบุ',
+            'category': row[4] or 'ทั่วไป',
             'inventory_no': row[3] or '-',
             'status': 'พร้อมให้ยืม',
             'available_quantity': 1,
@@ -216,15 +309,14 @@ def fetch_ssms_group_items(account_determ, asset_description):
         if code:
             codes.add(code)
 
-    local_equipment_map = {
-        eq.code: eq for eq in Equipment.objects.filter(code__in=codes)
-    }
+    local_equipment_map = {eq.code: eq for eq in Equipment.objects.filter(code__in=codes)}
     for item in items:
         equipment = local_equipment_map.get(item['code'])
         if equipment:
             item['id'] = equipment.id
             item['group_id'] = equipment.group_id
             item['status'] = equipment.status
+            item['available_quantity'] = equipment.available_quantity
 
     return items
 
@@ -290,14 +382,22 @@ def home_view(request):
     elif selected_equipment_type:
         selected_equipment_type_label = selected_equipment_type
 
+    group_id = request.GET.get('group_id')
+
     selected_group_items = None
     selected_group = None
     if group_id:
-        selected_group = EquipmentGroup.objects.filter(id=group_id).first()
-        selected_group_items = Equipment.objects.filter(
-            group_id=group_id,
-            status__in=['พร้อมให้ยืม', 'พร้อมใช้งาน']
-        ).order_by('code')
+        if isinstance(grouped_equipments, list):
+            # ค้นหาการ์ดใบที่ผู้ใช้กดเลือก
+            selected_group = next((g for g in grouped_equipments if g['id'] == group_id), None)
+            if selected_group:
+                # เช็คว่าเป็น Bundle หรือไม่ หากใช่จะส่ง asset_no_main ไปดึงชิ้นส่วนย่อย
+                asset_main = selected_group.get('asset_no_main') if selected_group.get('is_bundle') else None
+                selected_group_items = fetch_ssms_group_items(
+                    selected_group['account_determ'],
+                    selected_group['asset_description'],
+                    asset_no_main=asset_main
+                )
 
     context = {
         'grouped_equipments': grouped_equipments,
@@ -324,13 +424,12 @@ def request_form_view(request):
 
     if request.method == 'POST':
         request.session['borrow_details'] = {
-            'start_datetime': request.POST.get('start_datetime', '-'),
-            'end_datetime': request.POST.get('end_datetime', '-'),
-            'purpose': request.POST.get('purpose', '-'),
-            'location': request.POST.get('location', 'ไม่ระบุ'),
-            'pickup_method': request.POST.get('pickup_method', 'รับด้วยตนเองที่ห้องพัสดุ'),
+            'start_datetime': request.POST.get('start_datetime'),
+            'end_datetime': request.POST.get('end_datetime'),
+            'location': request.POST.get('location'),
+            'purpose': request.POST.get('purpose'),
+            'pickup_method': request.POST.get('pickup_method'),
         }
-        request.session.modified = True
         return redirect('borrow_app:request_summary')
 
     return render(request, 'borrow_app/request-form.html', {'cart_items': cart_items})
@@ -359,8 +458,13 @@ def confirm_request_view(request):
         if not cart_items or not details:
             return redirect('borrow_app:request_form')
 
-        count_today = BorrowRequest.objects.count() + 1
-        new_req_no = f"BR{datetime.now().strftime('%y%m%d')}-{count_today:04d}"
+        # 🟢 1. ดึงปี พ.ศ. 2 หลักท้าย (เช่น 2569 -> '69')
+        thai_year_short = str(datetime.now().year + 543)[-2:]
+        year_prefix = f"{thai_year_short}/"
+
+        # 🟢 2. นับจำนวนคำร้องที่มี Prefix ของปีนี้ เพื่อให้รีเซ็ตเริ่ม 0001 ใหม่ทุกปี
+        count_this_year = BorrowRequest.objects.filter(request_number__startswith=year_prefix).count() + 1
+        new_req_no = f"{year_prefix}{count_this_year:04d}"
 
         borrow_req = BorrowRequest.objects.create(
             request_number=new_req_no,
@@ -375,7 +479,19 @@ def confirm_request_view(request):
 
         for item in cart_items:
             item_code = item.get('code', '')
-            equipment_obj = Equipment.objects.filter(code=item_code).first() if item_code else None
+            equipment_obj = None
+
+            if item_code:
+                equipment_obj = Equipment.objects.filter(code=item_code).first()
+
+            # 🟢 ถ้าไม่มี code ให้ Fallback หาจากชื่อและหมวดหมู่ชิ้นที่พร้อมให้ยืมใน DB
+            if not equipment_obj:
+                equipment_obj = Equipment.objects.filter(
+                    category=item.get('category', ''),
+                    name=item.get('name', ''),
+                    status__in=['พร้อมให้ยืม', 'พร้อมใช้งาน'],
+                    available_quantity__gt=0
+                ).first()
 
             BorrowItem.objects.create(
                 borrow_request=borrow_req,
@@ -439,9 +555,7 @@ def add_to_cart_view(request):
         selected_sub_items = request.POST.getlist('selected_sub_items')
         cart = list(request.session.get('borrow_cart', []))
 
-        # 🟢 กรณีที่ 1: ส่งมาจาก Modal เลือกชุดอุปกรณ์ย่อย (Bundle)
         if selected_sub_items:
-            # ค้นหาอุปกรณ์ย่อยจาก DB Local เพื่อดึงชื่อและหมวดหมู่ที่ถูกต้อง
             equipments = Equipment.objects.filter(code__in=selected_sub_items)
             eq_map = {eq.code: eq for eq in equipments}
 
@@ -455,7 +569,6 @@ def add_to_cart_view(request):
                         'qty': 1,
                     })
                 else:
-                    # Fallback กรณีอุปกรณ์อยู่ใน SSMS แต่ยังไม่ได้ Sync ลง Local DB
                     cart.append({
                         'code': code,
                         'category': 'อุปกรณ์ในชุด',
@@ -463,15 +576,22 @@ def add_to_cart_view(request):
                         'qty': 1,
                     })
 
-        # 🟢 กรณีที่ 2: กดเพิ่มอุปกรณ์เดี่ยวแบบปกติ
         else:
             item_category = request.POST.get('item_category', '')
             item_name = request.POST.get('item_name', '')
             qty = request.POST.get('quantity', 1)
 
             if item_name:
+                # 🟢 ค้นหา Equipment ตัวแรกใน Local DB ที่พร้อมให้ยืมเพื่อเอา code มาผูก
+                eq_match = Equipment.objects.filter(
+                    category=item_category,
+                    name=item_name,
+                    status__in=['พร้อมให้ยืม', 'พร้อมใช้งาน'],
+                    available_quantity__gt=0
+                ).first()
+
                 cart.append({
-                    'code': '',
+                    'code': eq_match.code if eq_match else '',  # แนบ code อุปกรณ์ถ้ามี
                     'category': item_category,
                     'name': item_name,
                     'qty': qty,
@@ -497,8 +617,8 @@ def add_group_to_cart_view(request, group_id):
 
             if equipment_obj:
                 cart.append({
-                    'id': equipment_obj.id,
-                    'name': equipment_obj.name,
+                    'id': equipment_obj.code,
+                    'name': equipment_obj.category,
                     'type': 'Bundle' if equipment_obj.is_bundle else 'ครุภัณฑ์หลัก',
                     'qty': 1
                 })
@@ -514,14 +634,23 @@ def add_group_to_cart_view(request, group_id):
             ssms_group = None
 
         if ssms_group:
-            items = fetch_ssms_group_items(ssms_group['account_determ'], ssms_group['asset_description'])
+            # --- เริ่มต้นส่วนที่มีการแก้ไข ---
+            asset_main = ssms_group.get('asset_no_main') if ssms_group.get('is_bundle') else None
+            items = fetch_ssms_group_items(
+                ssms_group['account_determ'],
+                ssms_group['asset_description'],
+                asset_no_main=asset_main
+            )
+            # --- สิ้นสุดส่วนที่มีการแก้ไข ---
+
             if not items:
                 messages.warning(request, 'ไม่พบอุปกรณ์พร้อมให้ยืมในหมวดนี้')
                 return redirect('borrow_app:home')
 
             first_item = items[0]
             cart.append({
-                'id': first_item.get('code', ''),
+                'code': first_item.get('code', ''),
+                'category': first_item.get('category', ''),
                 'name': first_item.get('name', ''),
                 'type': 'Bundle',
                 'qty': 1
@@ -849,12 +978,19 @@ def equipment_manage_view(request):
     selected_group_items = None
     selected_group = None
 
+    # --- เริ่มต้นส่วนที่มีการแก้ไข ---
     try:
         categories, grouped_equipments = fetch_ssms_grouped_equipments(query='', category='')
         if group_id and grouped_equipments:
             selected_group = next((g for g in grouped_equipments if g['id'] == group_id), None)
             if selected_group:
-                selected_group_items = fetch_ssms_group_items(selected_group['account_determ'], selected_group['asset_description'])
+                # ตรวจสอบและส่ง asset_no_main เพิ่มกรณีเป็น Bundle
+                asset_main = selected_group.get('asset_no_main') if selected_group.get('is_bundle') else None
+                selected_group_items = fetch_ssms_group_items(
+                    selected_group['account_determ'],
+                    selected_group['asset_description'],
+                    asset_no_main=asset_main
+                )
                 grouped_equipments = [selected_group]
     except Exception:
         grouped_equipments = EquipmentGroup.objects.annotate(
@@ -864,9 +1000,13 @@ def equipment_manage_view(request):
 
         if group_id:
             selected_group = EquipmentGroup.objects.filter(id=group_id).first()
-            selected_group_items = Equipment.objects.filter(group_id=group_id).order_by('code')
             if selected_group:
-                grouped_equipments = [selected_group]
+                # แก้ไขการดึงค่าจาก Model Object (ใช้ dot notation) และส่ง Parameters ให้ถูกต้อง
+                selected_group_items = fetch_ssms_group_items(
+                    selected_group.account_determ,
+                    selected_group.asset_description
+                )
+    # --- สิ้นสุดส่วนที่มีการแก้ไข ---
 
     return render(request, 'borrow_app/admin_equipment.html', {
         'equipments': equipments,
@@ -954,10 +1094,8 @@ def get_bundle_structure(asset_no_main):
     if not asset_no_main or str(asset_no_main).strip() in ['None', '']:
         return None
 
-    # 🟢 คลีนรหัสครุภัณฑ์ เอาเฉพาะส่วนแรกก่อนเครื่องหมาย , หรือช่องว่าง
     clean_asset_main = str(asset_no_main).split(',')[0].strip()
 
-    # 1. พยายามดึงจาก SSMS DB Direct SQL ก่อน
     try:
         if 'ssms_db' in connections:
             with connections['ssms_db'].cursor() as cursor:
@@ -968,26 +1106,35 @@ def get_bundle_structure(asset_no_main):
                     ORDER BY TRY_CAST(assetNoSub AS INT)
                 """, [clean_asset_main])
                 rows = cursor.fetchall()
-                
+
             if rows:
-                main_item = None
+                # Rule 2 Validation: ถ้าชื่อเหมือนกันทั้งหมด ไม่ถือว่าเป็น Bundle
+                distinct_names = set(row[2] for row in rows if row[2])
+                if len(distinct_names) <= 1:
+                    return None
+
+                # ดึงชิ้นที่มี assetNoSub น้อยที่สุดเป็น main_item (บรรทัดแรกหลัง ORDER BY)
+                main_row = rows[0]
+                sub_no_main = str(main_row[1]).strip() if main_row[1] is not None else '0'
+
+                main_item = {
+                    'code': f"{main_row[0]}-{sub_no_main}",
+                    'name': main_row[2] or 'ไม่ระบุชื่อ',
+                    'category': main_row[3] or 'ทั่วไป',
+                    'inventory_no': main_row[4] or '-',
+                    'sub_no': sub_no_main
+                }
+
                 sub_items = []
-                for row in rows:
+                for row in rows[1:]:
                     sub_no = str(row[1]).strip() if row[1] is not None else '0'
-                    item_data = {
+                    sub_items.append({
                         'code': f"{row[0]}-{sub_no}",
                         'name': row[2] or 'ไม่ระบุชื่อ',
                         'category': row[3] or 'ทั่วไป',
                         'inventory_no': row[4] or '-',
                         'sub_no': sub_no
-                    }
-                    if sub_no in ['0', '0000', '0001'] and not main_item:
-                        main_item = item_data
-                    else:
-                        sub_items.append(item_data)
-                
-                if not main_item and sub_items:
-                    main_item = sub_items.pop(0)
+                    })
 
                 return {
                     'main_item': main_item,
@@ -995,8 +1142,10 @@ def get_bundle_structure(asset_no_main):
                     'total_count': len(rows)
                 }
     except Exception:
-        pass  # สลับไปใช้ Django ORM ด้านล่างหากคิวรี SSMS ขัดข้อง
+        pass
+    return None
 
+    # สลับไปใช้ Django ORM ด้านล่างหากคิวรี SSMS ขัดข้อง
     # 2. Fallback ดึงจาก Django ORM Equipment Model
     items = Equipment.objects.filter(
         Q(code__startswith=f"{clean_asset_main}-") | 

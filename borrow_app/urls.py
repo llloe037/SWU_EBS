@@ -21,7 +21,7 @@ urlpatterns = [
     path('admin-console/manual-request/', views.admin_manual_request_view, name='admin_manual_request'),
     path('admin-console/history/', views.admin_all_history_view, name='admin_all_history'),
     path('admin-console/equipment/', views.equipment_manage_view, name='equipment_manage'),
-    path('cancel-request/<str:request_id>/', views.cancel_request_view, name='cancel_request'),
-    path('return-request/<str:request_id>/', views.return_request_view, name='return_request'),
+    path('cancel-request/<path:request_id>/', views.cancel_request_view, name='cancel_request'),
+    path('return-request/<path:request_id>/', views.return_request_view, name='return_request'),
     path('equipment/sync-ssms/', views.sync_ssms_direct_view, name='sync_ssms_direct'),
 ]

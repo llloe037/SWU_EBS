@@ -1,6 +1,5 @@
 from datetime import datetime
 import datetime as dt
-
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import User
@@ -125,8 +124,7 @@ class BorrowRequest(models.Model):
                 item.equipment = equipment
                 item.save(update_fields=['equipment'])
                 equipment.status = 'กำลังถูกยืม'
-                if equipment.available_quantity > 0:
-                    equipment.available_quantity -= item.quantity
+                equipment.available_quantity = max(0, equipment.available_quantity - item.quantity)
                 equipment.save(update_fields=['status', 'available_quantity'])
         Notification.objects.create(
             user=self.user,
@@ -265,7 +263,6 @@ class BorrowItem(models.Model):
     requested_category = models.CharField(max_length=100, null=True, blank=True, verbose_name="หมวดหมู่ที่ขอยืม")
     item_type = models.CharField(max_length=50, null=True, blank=True)
     quantity = models.IntegerField(default=1)
-    return_status = models.CharField(max_length=50, default='ยังไม่คืน')
 
     # --- ฟิลด์เพิ่มเติมสำหรับการคืนรายชิ้น ---
     return_status = models.CharField(
