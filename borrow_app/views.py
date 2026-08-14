@@ -18,7 +18,6 @@ from django.db import models
 from django.db.models import Count, Q, Sum, Min
 from django.db import transaction
 
-
 def _parse_date(date_str):
     if not date_str:
         return None
@@ -39,6 +38,14 @@ def _parse_date(date_str):
             continue
             
     return None
+
+def _clean_asset_no(val):
+    if val is None:
+        return ''
+    s = str(val).strip()
+    if s.endswith('.0'):
+        s = s[:-2]
+    return s
 
 
 def build_equipment_type_summary(query='', category='', status=''):
@@ -191,7 +198,8 @@ def fetch_ssms_grouped_equipments(query='', category=''):
     no_main_rows = []
 
     for row in rows:
-        main_no = str(row[0]).strip() if row[0] is not None else ''
+        # 🟢 เปลี่ยนมาใช้ _clean_asset_no(row[0])
+        main_no = _clean_asset_no(row[0])
         if main_no:
             main_no_groups.setdefault(main_no, []).append(row)
         else:
@@ -282,14 +290,15 @@ def fetch_ssms_stats():
 
 def fetch_ssms_group_items(account_determ, asset_description, asset_no_main=None):
     if asset_no_main:
-        # หากเป็น Bundle ให้ดึงชิ้นส่วนย่อยทั้งหมดตาม assetNoMain
+        # 🟢 Clean ค่า asset_no_main และใช้ LTRIM(RTRIM()) ใน SQL
+        clean_main = _clean_asset_no(asset_no_main)
         sql = """
             SELECT assetNoMain, assetNoSub, assetDescription, inventoryNo, accountDeterm
             FROM dbo.asset
-            WHERE assetNoMain = %s
+            WHERE LTRIM(RTRIM(assetNoMain)) = %s
             ORDER BY TRY_CAST(assetNoSub AS INT)
         """
-        params = [asset_no_main]
+        params = [clean_main]
     else:
         # หากเป็น Single ให้ดึงรายการทั้งหมดตาม หมวดหมู่ + ชื่ออุปกรณ์
         sql = """
@@ -1090,19 +1099,21 @@ def sync_ssms_direct_view(request):
 
         # ใช้ transaction.atomic เพื่อเร่งความเร็วในการประมวลผล (จากนาทีเหลือเพียงไม่กี่วินาที)
         with transaction.atomic():
-            for row in rows:
-                main_no = str(row[0]).strip() if row[0] is not None else ''
-                sub_no = str(row[1]).strip() if row[1] is not None else '0'
+            for idx, row in enumerate(rows):
+                main_no = _clean_asset_no(row[0])
+                sub_no = str(row[1]).strip() if row[1] is not None else str(idx + 1)
                 name = str(row[2]).strip() if row[2] else 'ไม่ระบุชื่อ'
                 category = str(row[3]).strip() if row[3] else 'ทั่วไป'
                 inventory_no = str(row[4]).strip() if row[4] else ''
                 quantity = 1
 
-                # 🟢 กำหนดรหัสเลขครุภัณฑ์ให้เป็นรูปแบบ assetNoMain-assetNoSub
-                if main_no:
+                # 🟢 ป้องกัน code ซ้ำ และรองรับ sub_no ที่เป็นค่าว่าง
+                if main_no and sub_no:
                     code = f"{main_no}-{sub_no}"
-                else:
+                elif inventory_no:
                     code = inventory_no
+                else:
+                    code = f"SSMS-{main_no}-{idx}"
 
                 if not code:
                     continue
@@ -1143,15 +1154,17 @@ def get_bundle_structure(asset_no_main):
     if not asset_no_main or str(asset_no_main).strip() in ['None', '']:
         return None
 
-    clean_asset_main = str(asset_no_main).split(',')[0].strip()
+    # 🟢 Clean ค่า asset_no_main
+    clean_asset_main = _clean_asset_no(str(asset_no_main).split(',')[0])
 
     try:
         if 'ssms_db' in connections:
             with connections['ssms_db'].cursor() as cursor:
+                # 🟢 ปรับ SQL เป็น LTRIM(RTRIM(assetNoMain)) = %s
                 cursor.execute("""
                     SELECT assetNoMain, assetNoSub, assetDescription, accountDeterm, inventoryNo
                     FROM dbo.asset
-                    WHERE assetNoMain = %s
+                    WHERE LTRIM(RTRIM(assetNoMain)) = %s
                     ORDER BY TRY_CAST(assetNoSub AS INT)
                 """, [clean_asset_main])
                 rows = cursor.fetchall()
