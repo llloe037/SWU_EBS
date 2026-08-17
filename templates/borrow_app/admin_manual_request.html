@@ -51,20 +51,80 @@
                     <input type="text" name="borrower_name" placeholder="กรอกชื่อของคุณ" class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-700 focus:outline-none focus:border-[#9e1b32] focus:ring-1 focus:ring-[#9e1b32] transition" required>
                 </div>
             </div>
-            <!-- เลือกอุปกรณ์ที่ยืม (ดีไซน์เนียนเข้ากับฟอร์ม) -->
-            <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4">
-                <label class="md:col-span-3 font-semibold text-gray-800">เลือกอุปกรณ์ที่ยืม</label>
-                <div class="md:col-span-9">
-                    <select name="equipment_ids" class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-700 bg-white focus:outline-none focus:border-[#9e1b32] focus:ring-1 focus:ring-[#9e1b32] transition" required>
-                        <option value="" disabled selected>เลือกอุปกรณ์ที่ต้องการยืม</option>
-                        {% for eq in equipments %}
-                           <option value="{{ eq.id }}">{{ eq.name }} {% if eq.code %}({{ eq.code }}){% endif %}</option>
-                        {% empty %}
-                            <option value="" disabled>ไม่มีรายการอุปกรณ์พร้อมใช้งานในระบบ</option>
-                        {% endfor %}
-                    </select>
+            <!-- เลือกอุปกรณ์ที่ยืม -->
+    <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4">
+        <label class="md:col-span-3 font-semibold text-gray-800">
+            เลือกอุปกรณ์ที่ยืม
+        </label>
+
+        <div class="md:col-span-9 relative">
+
+            <!-- ช่องค้นหา -->
+            <input
+                type="text"
+                id="equipment-search"
+                autocomplete="off"
+                placeholder="พิมพ์ชื่อหรือรหัสอุปกรณ์เพื่อค้นหา..."
+                class="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-gray-700 bg-white focus:outline-none focus:border-[#9e1b32] focus:ring-1 focus:ring-[#9e1b32] transition"
+            >
+
+            <!-- Dropdown ผลการค้นหา -->
+            <div
+                id="equipment-dropdown"
+                class="hidden absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+            >
+                {% for eq in equipments %}
+                    <div
+                        class="equipment-option px-3.5 py-2.5 cursor-pointer hover:bg-gray-50 text-gray-700"
+                        data-id="{{ eq.id }}"
+                        data-name="{{ eq.name }}"
+                        data-code="{{ eq.code|default:'' }}"
+                    >
+                        {{ eq.name }}
+                        {% if eq.code %}
+                            ({{ eq.code }})
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <div class="px-3.5 py-2.5 text-gray-400">
+                        ไม่มีรายการอุปกรณ์พร้อมใช้งานในระบบ
+                    </div>
+                {% endfor %}
+
+                <!-- กรณีค้นหาแล้วไม่พบ -->
+                <div
+                    id="equipment-no-result"
+                    class="hidden px-3.5 py-2.5 text-gray-400"
+                >
+                    ไม่พบอุปกรณ์ที่ค้นหา
                 </div>
             </div>
+
+            <!-- แสดงอุปกรณ์ที่เลือก -->
+            <div id="selected-equipment" class="mt-2 hidden">
+                <div class="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700">
+                    <span id="selected-equipment-text"></span>
+
+                    <button
+                        type="button"
+                        id="remove-equipment"
+                        class="text-gray-400 hover:text-[#9e1b32] font-bold"
+                    >
+                        ×
+                    </button>
+                </div>
+            </div>
+
+            <!-- ส่งค่าให้ Django -->
+            <input
+                type="hidden"
+                name="equipment_ids"
+                id="equipment-id"
+                value=""
+            >
+
+        </div>
+    </div>
 
             <!-- สังกัด -->
             <div class="grid grid-cols-1 md:grid-cols-12 items-center gap-4">
@@ -156,4 +216,137 @@
         © 2024 Borrowing Returning System. All rights reserved.
     </div>
 </div>
+
+<script>
+(function () {
+    'use strict';
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const searchInput = document.getElementById('equipment-search');
+        const dropdown = document.getElementById('equipment-dropdown');
+        const options = document.querySelectorAll('.equipment-option');
+        const noResult = document.getElementById('equipment-no-result');
+
+        const selectedEquipment = document.getElementById('selected-equipment');
+        const selectedEquipmentText = document.getElementById('selected-equipment-text');
+        const removeEquipment = document.getElementById('remove-equipment');
+        const equipmentId = document.getElementById('equipment-id');
+
+        // ถ้าหน้านี้ไม่มี element เหล่านี้ ให้หยุดทำงาน
+        // เพื่อไม่ให้กระทบ Script ตัวอื่น
+        if (
+            !searchInput ||
+            !dropdown ||
+            !equipmentId
+        ) {
+            return;
+        }
+
+        // เปิด Dropdown
+        searchInput.addEventListener('focus', function () {
+            dropdown.classList.remove('hidden');
+            filterEquipment();
+        });
+
+        // ค้นหาอุปกรณ์ขณะพิมพ์
+        searchInput.addEventListener('input', function () {
+            filterEquipment();
+        });
+
+        function filterEquipment() {
+
+            const keyword = searchInput.value.trim().toLowerCase();
+
+            let found = 0;
+
+            options.forEach(function (option) {
+
+                const name = (option.dataset.name || '').toLowerCase();
+                const code = (option.dataset.code || '').toLowerCase();
+
+                const match =
+                    name.includes(keyword) ||
+                    code.includes(keyword);
+
+                if (match) {
+                    option.classList.remove('hidden');
+                    found++;
+                } else {
+                    option.classList.add('hidden');
+                }
+            });
+
+            if (found === 0) {
+                noResult.classList.remove('hidden');
+            } else {
+                noResult.classList.add('hidden');
+            }
+
+            dropdown.classList.remove('hidden');
+        }
+
+        // เมื่อเลือกอุปกรณ์
+        options.forEach(function (option) {
+
+            option.addEventListener('click', function () {
+
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                const code = this.dataset.code;
+
+                // เก็บ ID สำหรับส่ง Django
+                equipmentId.value = id;
+
+                // แสดงชื่อที่เลือก
+                selectedEquipmentText.textContent =
+                    name + (code ? ' (' + code + ')' : '');
+
+                selectedEquipment.classList.remove('hidden');
+
+                // ล้างช่องค้นหา
+                searchInput.value = '';
+
+                // ปิด Dropdown
+                dropdown.classList.add('hidden');
+
+                // ซ่อนตัวเลือกทั้งหมด
+                options.forEach(function (item) {
+                    item.classList.remove('hidden');
+                });
+            });
+
+        });
+
+        // ปุ่ม X ยกเลิกอุปกรณ์
+        if (removeEquipment) {
+
+            removeEquipment.addEventListener('click', function () {
+
+                equipmentId.value = '';
+
+                selectedEquipment.classList.add('hidden');
+
+                selectedEquipmentText.textContent = '';
+
+                searchInput.value = '';
+
+                searchInput.focus();
+            });
+        }
+
+        // คลิกข้างนอกเพื่อปิด Dropdown
+        document.addEventListener('click', function (event) {
+
+            if (!searchInput.contains(event.target) &&
+                !dropdown.contains(event.target)) {
+
+                dropdown.classList.add('hidden');
+            }
+        });
+
+    });
+
+})();
+</script>
 {% endblock %}
