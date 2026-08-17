@@ -3,11 +3,12 @@ import datetime as dt
 from django.db import models, transaction
 from django.db.models import Q
 from django.contrib.auth.models import User
+from cloudinary.models import CloudinaryField
 
 class EquipmentGroup(models.Model):
     account_determ = models.CharField(max_length=255, verbose_name="accountDeterm / หมวดหมู่")
     asset_description = models.CharField(max_length=255, verbose_name="assetDescription / ประเภท")
-    image = models.ImageField(upload_to='equipment_group_images/', blank=True, null=True, verbose_name="รูปภาพหมวดหมู่")
+    image = CloudinaryField('รูปภาพหมวดหมู่', folder='equipment_groups/', blank=True, null=True)
 
     class Meta:
         unique_together = ('account_determ', 'asset_description')
@@ -34,7 +35,7 @@ class Equipment(models.Model):
     group = models.ForeignKey('EquipmentGroup', null=True, blank=True, on_delete=models.SET_NULL, related_name='equipments', verbose_name='หมวด/ประเภทอุปกรณ์')
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='พร้อมให้ยืม', verbose_name="สถานะอุปกรณ์")
     is_bundle = models.BooleanField(default=False, verbose_name="เป็นชุด Bundle")
-    image = models.ImageField(upload_to='equipments/', blank=True, null=True)
+    image = CloudinaryField('รูปภาพอุปกรณ์', folder='equipments/', blank=True, null=True)
 
     # --- ฟิลด์เพิ่มเติมจาก SSMS ---
     seq_no = models.IntegerField(null=True, blank=True, verbose_name="ลำดับ (seqNo)")
@@ -100,12 +101,12 @@ class BorrowRequest(models.Model):
     purpose = models.TextField(verbose_name="วัตถุประสงค์")
     location = models.CharField(max_length=255, verbose_name="สถานที่นำไปใช้")
     pickup_method = models.CharField(max_length=100, verbose_name="ช่องทางการรับอุปกรณ์")
-    pickup_image = models.ImageField(upload_to='pickup_evidence/%Y/%m/%d/', blank=True, null=True, verbose_name="รูปหลักฐานการรับอุปกรณ์ (ก่อนยืม)")
+    pickup_image = CloudinaryField('รูปหลักฐานการรับอุปกรณ์ (ก่อนยืม)', folder='pickup_evidence/', blank=True, null=True)
     approved_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_requests', verbose_name="ผู้อนุมัติ")
     reject_reason = models.TextField(blank=True, null=True, verbose_name="เหตุผลที่ไม่อนุมัติ")
     return_note = models.TextField(blank=True, null=True, verbose_name="หมายเหตุการคืน")
     return_incomplete_comment = models.TextField(blank=True, null=True, verbose_name="ความเห็นกรณีคืนไม่ครบ")
-    return_image = models.ImageField(upload_to='return_evidence/', blank=True, null=True, verbose_name="รูปหลักฐานการคืน")
+    return_image = CloudinaryField('รูปหลักฐานการคืน', folder='return_evidence/', blank=True, null=True)
     returned_at = models.DateTimeField(null=True, blank=True, verbose_name="วันที่คืน")
     received_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='received_returns', verbose_name="ผู้รับคืน")
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='รอการอนุมัติ', verbose_name="สถานะ")
