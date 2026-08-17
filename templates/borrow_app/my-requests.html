@@ -36,12 +36,16 @@
                             </span>
                         </td>
                         <td class="py-4 px-4 text-gray-700 max-w-[220px]">
-                            {% if item.status == 'คืนไม่ครบ' and item.return_incomplete_comment %}
-                            <div class="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
-                                {{ item.return_incomplete_comment }}
-                            </div>
+                            {% if item.pickup_image %}
+                                <a href="{{ item.pickup_image.url }}" target="_blank" class="inline-flex items-center text-sky-600 hover:text-sky-700 hover:underline font-medium">
+                                    📸 ดูรูปภาพ
+                                </a>
+                            {% elif item.status == 'คืนไม่ครบ' and item.return_incomplete_comment %}
+                                <div class="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+                                    {{ item.return_incomplete_comment }}
+                                </div>
                             {% else %}
-                            <span class="text-gray-400">-</span>
+                                <span class="text-gray-400">-</span>
                             {% endif %}
                         </td>
                         

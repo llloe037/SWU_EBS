@@ -100,6 +100,7 @@ class BorrowRequest(models.Model):
     purpose = models.TextField(verbose_name="วัตถุประสงค์")
     location = models.CharField(max_length=255, verbose_name="สถานที่นำไปใช้")
     pickup_method = models.CharField(max_length=100, verbose_name="ช่องทางการรับอุปกรณ์")
+    pickup_image = models.ImageField(upload_to='pickup_evidence/%Y/%m/%d/', blank=True, null=True, verbose_name="รูปหลักฐานการรับอุปกรณ์ (ก่อนยืม)")
     approved_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_requests', verbose_name="ผู้อนุมัติ")
     reject_reason = models.TextField(blank=True, null=True, verbose_name="เหตุผลที่ไม่อนุมัติ")
     return_note = models.TextField(blank=True, null=True, verbose_name="หมายเหตุการคืน")

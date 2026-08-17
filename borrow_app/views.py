@@ -803,6 +803,10 @@ def admin_manage_requests_view(request):
                     eq_id = request.POST.get(f'equipment_for_{item.id}', '')
                     if eq_id:
                         assignments[str(item.id)] = eq_id
+                if 'pickup_image' in request.FILES:
+                    borrow_req.pickup_image = request.FILES['pickup_image']
+                    borrow_req.save()
+                
                 try:
                     borrow_req.approve(request.user, assignments)
                 except ValueError as exc:
@@ -810,6 +814,9 @@ def admin_manage_requests_view(request):
                     return redirect('borrow_app:admin_manage_requests')
             else:
                 reason = request.POST.get('reject_reason', '').strip()
+                if 'pickup_image' in request.FILES:
+                    borrow_req.pickup_image = request.FILES['pickup_image']
+                    borrow_req.save()
                 borrow_req.reject(reason)
 
         elif borrow_req.status == 'รอตรวจสอบการคืน':
