@@ -1045,6 +1045,31 @@ def equipment_manage_view(request):
     # --- เริ่มต้นส่วนที่มีการแก้ไข ---
     try:
         categories, grouped_equipments = fetch_ssms_grouped_equipments(query='', category='')
+
+        def get_group_status(group):
+            available = group.get('available_count', 0)
+            total = group.get('total_count', 0)
+    
+            if total <= 0:
+                return None
+    
+            # ถ้า available น้อยกว่า total = กำลังถูกยืม (มีการยืมไป)
+            # ถ้า available เท่ากับ total = พร้อมให้ยืม (ว่างหมด)
+            # ไม่ได้ดูจำนวนเท่าไหร่ แค่ดูว่า available < total ไหม
+            if available < total:
+                return 'กำลังถูกยืม'
+            else:
+                return 'พร้อมให้ยืม'
+
+
+        # ⭐ เพิ่มการ filter grouped_equipments ตามสถานะที่เลือก
+        if selected_status and grouped_equipments:
+            grouped_equipments = [
+                g for g in grouped_equipments 
+                if get_group_status(g) == selected_status  # Filter ตามสถานะ
+            ]
+
+
         if group_id and grouped_equipments:
             selected_group = next((g for g in grouped_equipments if g['id'] == group_id), None)
             if selected_group:
