@@ -1052,14 +1052,13 @@ def equipment_manage_view(request):
     
             if total <= 0:
                 return None
-    
-            # ถ้า available น้อยกว่า total = กำลังถูกยืม (มีการยืมไป)
-            # ถ้า available เท่ากับ total = พร้อมให้ยืม (ว่างหมด)
-            # ไม่ได้ดูจำนวนเท่าไหร่ แค่ดูว่า available < total ไหม
-            if available < total:
+            
+            if available == 0:
                 return 'กำลังถูกยืม'
-            else:
+            elif available == total:
                 return 'พร้อมให้ยืม'
+            else:
+                return None
 
 
         # ⭐ เพิ่มการ filter grouped_equipments ตามสถานะที่เลือก
