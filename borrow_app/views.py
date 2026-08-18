@@ -141,6 +141,42 @@ def get_equipment_items_for_type(selected_type='', query='', category='', status
     )
 
 
+def _norm_text(s):
+    """ตัดช่องว่างหัว-ท้าย และยุบช่องว่างซ้ำ/แปลงเป็นตัวพิมพ์เดียวกัน เพื่อกันปัญหาจับคู่ข้อความไทยไม่ตรงกัน"""
+    if s is None:
+        return ''
+    return ' '.join(str(s).strip().split()).casefold()
+
+
+def fetch_ssms_asset_images():
+    """
+    ดึงรูปภาพอุปกรณ์จากตาราง dbo.asset_image (accountDeterm, assetDescription, image_url)
+    รูปถูกอัปโหลดไว้บน Cloudinary โฟลเดอร์ "equipments" แล้วนำ URL มาเก็บไว้ในตารางนี้
+    จับคู่ด้วย accountDeterm + assetDescription (normalize ช่องว่าง/ตัวพิมพ์ก่อนเทียบ กันปัญหาช่องว่างเกิน/ตัวพิมพ์เล็กใหญ่)
+    คืนค่าเป็น dict: { "accountDeterm|assetDescription" (normalized): [image_url, ...] }
+    หนึ่งคีย์อาจมีได้หลายรูป (จะแสดงเป็นแบบเลื่อนดูในหน้า home)
+    """
+    images_map = {}
+    try:
+        with connections['ssms_db'].cursor() as cursor:
+            cursor.execute("""
+                SELECT accountDeterm, assetDescription, image_url
+                FROM dbo.asset_image
+                WHERE image_url IS NOT NULL AND image_url <> ''
+                ORDER BY ID
+            """)
+            rows = cursor.fetchall()
+        for acc_determ, desc, url in rows:
+            if not desc or not url:
+                continue
+            key = f"{_norm_text(acc_determ)}|{_norm_text(desc)}"
+            images_map.setdefault(key, []).append(str(url).strip())
+    except Exception:
+        # ถ้าตาราง dbo.asset_image ยังไม่พร้อม/ดึงไม่ได้ ให้ไม่มีรูปแทนที่จะทำให้หน้า home พัง
+        pass
+    return images_map
+
+
 def fetch_ssms_grouped_equipments(query='', category=''):
     query_filters = []
     params = []
@@ -193,6 +229,9 @@ def fetch_ssms_grouped_equipments(query='', category=''):
         cursor.execute("SELECT DISTINCT accountDeterm FROM dbo.asset ORDER BY accountDeterm")
         categories = [row[0] for row in cursor.fetchall() if row[0]]
 
+    # 🟢 ดึง map รูปภาพอุปกรณ์ (assetDescription -> [image_url, ...]) จาก dbo.asset_image
+    asset_images = fetch_ssms_asset_images()
+
     # Step 1: แยกกลุ่ม assetNoMain เพื่อตรวจว่าเป็น Bundle หรือ Single
     main_no_groups = {}
     no_main_rows = []
@@ -238,6 +277,20 @@ def fetch_ssms_grouped_equipments(query='', category=''):
         #เช็คสถานะยืม ถ้าอยู่ใน unavailable_mains ให้คงเหลือเป็น 0
         is_bundle_avail = 0 if main_no in unavailable_mains else 1
 
+        # 🟢 รวมรูปภาพของทุกชิ้นส่วนย่อยในชุด (ไม่ใช่แค่รูปของรายการหลัก) เพื่อให้เลื่อนดูได้ครบทุกชิ้น
+        bundle_images = []
+        seen_urls = set()
+        for r in sorted_item_rows:
+            r_desc = (r[2] or '').strip()
+            r_acc = (r[3] or acc_determ).strip()
+            if not r_desc:
+                continue
+            r_key = f"{_norm_text(r_acc)}|{_norm_text(r_desc)}"
+            for url in asset_images.get(r_key, []):
+                if url not in seen_urls:
+                    bundle_images.append(url)
+                    seen_urls.add(url)
+
         key = f"BUNDLE_{main_no}"
         grouped_dict[key] = {
             'id': key,
@@ -247,6 +300,7 @@ def fetch_ssms_grouped_equipments(query='', category=''):
             'is_bundle': True,
             'available_count': is_bundle_avail,
             'total_count': len(item_rows),  # 🟢 เปลี่ยนจาก 1 เป็น len(item_rows) เพื่อบอกจำนวนชิ้นในชุด
+            'images': bundle_images,  # 🟢 รวมรูปทุกชิ้นส่วนย่อยในชุด ไม่ใช่แค่รายการหลัก
         }
 
     # 2b. ประมวลผลกลุ่ม Single (รวมกลุ่มตาม Category + assetDescription)
@@ -266,6 +320,7 @@ def fetch_ssms_grouped_equipments(query='', category=''):
                 'is_bundle': False,
                 'available_count': avail_c,
                 'total_count': 0,
+                'images': asset_images.get(f"{_norm_text(acc_determ)}|{_norm_text(asset_desc)}", []),  # 🟢 จับคู่ด้วย accountDeterm + assetDescription (normalize แล้ว)
             }
         grouped_dict[key]['total_count'] += 1
         if key_name not in local_avail_map:
