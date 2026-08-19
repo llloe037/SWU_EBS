@@ -60,7 +60,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-2">วันที่คืนจริง <span class="text-rose-500">*</span></label>
-                <input type="date" name="return_date" required class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+                <input type="date" name="return_date" value="{{ today_date }}" min="{{ today_date }}"required class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
             </div>
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-2">หมายเหตุการคืน (ไม่บังคับ)</label>

@@ -92,11 +92,23 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">วันที่/เวลา ต้องการยืม <span class="text-red-500">*</span></label>
-                            <input type="datetime-local" name="start_datetime" required class="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none">
+                            <input type="datetime-local" 
+                                   id="start_datetime"
+                                   name="start_datetime" 
+                                   value="{{ default_start }}" 
+                                   min="{{ min_date }}" 
+                                   required 
+                                   class="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none">
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">วันที่/เวลา คาดว่าจะคืน <span class="text-red-500">*</span></label>
-                            <input type="datetime-local" name="end_datetime" required class="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none">
+                            <input type="datetime-local" 
+                                   id="end_datetime"
+                                   name="end_datetime" 
+                                   value="{{ default_end }}" 
+                                   min="{{ default_start }}"
+                                   required 
+                                   class="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none">
                         </div>
                     </div>
 
@@ -131,4 +143,34 @@
             </div>
         </div>
     </div>
+
+    <!-- ⭐ JavaScript สำหรับ sync date fields -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const startInput = document.getElementById('start_datetime');
+        const endInput = document.getElementById('end_datetime');
+
+        // ⭐ เมื่อเปลี่ยนวันยืม
+        startInput.addEventListener('change', function() {
+            const startValue = this.value;
+            
+            if (startValue) {
+                // อัพเดท min ของวันคืน ให้เท่ากับวันยืม
+                endInput.min = startValue;
+                
+                // ถ้าวันคืนเก่าน้อยกว่าวันยืมใหม่ ให้เซ็ตเป็นวันยืม + 3 วัน
+                if (endInput.value < startValue) {
+                    const startDate = new Date(startValue);
+                    startDate.setDate(startDate.getDate() + 3);
+                    endInput.value = startDate.toISOString().slice(0, 16);
+                }
+            }
+        });
+
+        // ⭐ เมื่อ load page ให้เซ็ต min แล้ว
+        if (startInput.value) {
+            endInput.min = startInput.value;
+        }
+    });
+    </script>
 {% endblock %}
