@@ -177,7 +177,7 @@ def fetch_ssms_asset_images():
     return images_map
 
 
-def fetch_ssms_grouped_equipments(query='', category=''):
+def fetch_ssms_grouped_equipments(query='', category='', status=''):
     query_filters = []
     params = []
 
@@ -200,17 +200,34 @@ def fetch_ssms_grouped_equipments(query='', category=''):
         WHERE 1=1{where_clause}
         ORDER BY TRY_CAST(assetNoMain AS BIGINT), TRY_CAST(assetNoSub AS INT)
     """
-    #ดึงรายการ asset_no_main ที่ถูกยืมหรือของหมดใน Local DB มาลง set
-    unavailable_eqs = Equipment.objects.filter(
-        Q(status__in=['กำลังถูกยืม', 'ติดยืม', 'อยู่ระหว่างซ่อม', 'ชำรุด', 'ถูกยืม']) | 
-        Q(available_quantity__lte=0)
-    )
+
+    # 🟢 normalize สถานะที่ใช้กรอง ('พร้อมให้ยืม' และ 'พร้อมใช้งาน' ถือว่าเป็นสถานะเดียวกัน เหมือน logic เดิมในหน้า equipment_manage_view)
+    status_filter = (status or '').strip()
+    if status_filter in ('พร้อมให้ยืม', 'พร้อมใช้งาน'):
+        status_filter = 'พร้อมให้ยืม'
+
     unavailable_mains = set()
-    for eq in unavailable_eqs:
+    status_main_map = {}   # 🟢 main_no -> set ของสถานะที่มีอยู่ในชุดนั้น (ใช้กรองการ์ด Bundle ตามสถานะ)
+    status_key_map = {}    # 🟢 "accountDeterm|assetDescription" -> set ของสถานะ (ใช้กรองการ์ด Single ตามสถานะ)
+
+    #ดึงรายการอุปกรณ์ทั้งหมดจาก Local DB มาสร้างทั้ง unavailable_mains และ map สถานะสำหรับกรองการ์ด
+    for eq in Equipment.objects.all():
+        st = (eq.status or '').strip()
+        norm_st = 'พร้อมให้ยืม' if st in ('พร้อมให้ยืม', 'พร้อมใช้งาน') else st
+        is_unavail = st in ['กำลังถูกยืม', 'ติดยืม', 'อยู่ระหว่างซ่อม', 'ชำรุด', 'ถูกยืม'] or (eq.available_quantity or 0) <= 0
+
+        main_key_candidates = []
         if eq.asset_no_main:
-            unavailable_mains.add(str(eq.asset_no_main).strip())
+            main_key_candidates.append(str(eq.asset_no_main).strip())
         if eq.code and '-' in eq.code:
-            unavailable_mains.add(eq.code.split('-')[0].strip())
+            main_key_candidates.append(eq.code.split('-')[0].strip())
+        for mk in main_key_candidates:
+            if is_unavail:
+                unavailable_mains.add(mk)
+            status_main_map.setdefault(mk, set()).add(norm_st)
+
+        key_name = f"{(eq.category or '').strip()}|{(eq.name or '').strip()}"
+        status_key_map.setdefault(key_name, set()).add(norm_st)
 
     local_avail_map = {}
     local_qs = Equipment.objects.values('category', 'name').annotate(
@@ -326,7 +343,22 @@ def fetch_ssms_grouped_equipments(query='', category=''):
         if key_name not in local_avail_map:
             grouped_dict[key]['available_count'] += 1
 
-    return categories, list(grouped_dict.values())
+    result_list = list(grouped_dict.values())
+
+    # 🟢 กรองการ์ดตามสถานะที่เลือก (ถ้ามี) — เช็คว่ากลุ่มนั้นมีอุปกรณ์สถานะที่ต้องการอยู่จริงหรือไม่
+    if status_filter:
+        filtered_list = []
+        for item in result_list:
+            if item['is_bundle']:
+                statuses = status_main_map.get(str(item['asset_no_main']).strip(), set())
+            else:
+                key_name = f"{item['account_determ']}|{item['asset_description']}"
+                statuses = status_key_map.get(key_name, set())
+            if status_filter in statuses:
+                filtered_list.append(item)
+        result_list = filtered_list
+
+    return categories, result_list
 
 
 def fetch_ssms_stats():
@@ -638,6 +670,15 @@ def add_to_cart_view(request):
 
         cart = list(request.session.get('borrow_cart', []))
 
+        # 🟢 ดึง map รูปภาพครั้งเดียว แล้วนำไปจับคู่กับแต่ละรายการที่ใส่ลงตะกร้า
+        asset_images = fetch_ssms_asset_images()
+
+        def _eq_image_url(eq):
+            if not eq:
+                return ''
+            urls = asset_images.get(f"{_norm_text(eq.category)}|{_norm_text(eq.name)}", [])
+            return urls[0] if urls else ''
+
         #หากมีข้อมูลอุปกรณ์หลัก ให้ Push ลง Cart เป็นรายการแรกก่อน
         if main_item_code or main_item_name:
             eq_main = Equipment.objects.filter(code=main_item_code).first() if main_item_code else None
@@ -646,6 +687,7 @@ def add_to_cart_view(request):
                 'category': eq_main.category if eq_main else main_item_category,
                 'name': f"{eq_main.name} (รหัส: {eq_main.code})" if eq_main else main_item_name,
                 'qty': 1,
+                'image_url': _eq_image_url(eq_main),  # 🟢 รูปภาพอุปกรณ์หลัก
             })
 
         if selected_sub_items:
@@ -661,6 +703,7 @@ def add_to_cart_view(request):
                         'category': eq.category,
                         'name': f"{eq.name} (รหัส: {eq.code})",
                         'qty': 1,
+                        'image_url': _eq_image_url(eq),  # 🟢 รูปภาพอุปกรณ์ย่อย
                     })
                 else:
                     cart.append({
@@ -668,6 +711,7 @@ def add_to_cart_view(request):
                         'category': 'อุปกรณ์ในชุด',
                         'name': f"อุปกรณ์ย่อยรหัส {code}",
                         'qty': 1,
+                        'image_url': '',
                     })
 
         elif not (main_item_code or main_item_name):
@@ -688,6 +732,7 @@ def add_to_cart_view(request):
                     'category': item_category,
                     'name': item_name,
                     'qty': qty,
+                    'image_url': _eq_image_url(eq_match),  # 🟢 รูปภาพอุปกรณ์ชิ้นเดียว
                 })
 
         request.session['borrow_cart'] = cart
@@ -709,11 +754,15 @@ def add_group_to_cart_view(request, group_id):
                 group_name = equipment_obj.group.asset_description
 
             if equipment_obj:
+                # 🟢 รูปภาพอุปกรณ์ (จับคู่ตาม accountDeterm + assetDescription เหมือนหน้า home)
+                asset_images = fetch_ssms_asset_images()
+                img_urls = asset_images.get(f"{_norm_text(equipment_obj.category)}|{_norm_text(equipment_obj.name)}", [])
                 cart.append({
                     'id': equipment_obj.code,
                     'name': equipment_obj.category,
                     'type': 'Bundle' if equipment_obj.is_bundle else 'ครุภัณฑ์หลัก',
-                    'qty': 1
+                    'qty': 1,
+                    'image_url': img_urls[0] if img_urls else '',
                 })
                 request.session['borrow_cart'] = cart
                 request.session.modified = True
@@ -746,7 +795,8 @@ def add_group_to_cart_view(request, group_id):
                 'category': first_item.get('category', ''),
                 'name': first_item.get('name', ''),
                 'type': 'Bundle',
-                'qty': 1
+                'qty': 1,
+                'image_url': (ssms_group.get('images') or [''])[0],  # 🟢 ใช้รูปแรกของกลุ่ม (รวมรูปทุกชิ้นในชุดแล้วจากหน้า home)
             })
             request.session['borrow_cart'] = cart
             request.session.modified = True
@@ -1099,31 +1149,7 @@ def equipment_manage_view(request):
 
     # --- เริ่มต้นส่วนที่มีการแก้ไข ---
     try:
-        categories, grouped_equipments = fetch_ssms_grouped_equipments(query='', category='')
-
-        def get_group_status(group):
-            available = group.get('available_count', 0)
-            total = group.get('total_count', 0)
-    
-            if total <= 0:
-                return None
-            
-            if available == 0:
-                return 'กำลังถูกยืม'
-            elif available == total:
-                return 'พร้อมให้ยืม'
-            else:
-                return None
-
-
-        # ⭐ เพิ่มการ filter grouped_equipments ตามสถานะที่เลือก
-        if selected_status and grouped_equipments:
-            grouped_equipments = [
-                g for g in grouped_equipments 
-                if get_group_status(g) == selected_status  # Filter ตามสถานะ
-            ]
-
-
+        categories, grouped_equipments = fetch_ssms_grouped_equipments(query='', category='', status=selected_status)
         if group_id and grouped_equipments:
             selected_group = next((g for g in grouped_equipments if g['id'] == group_id), None)
             if selected_group:
