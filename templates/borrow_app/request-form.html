@@ -55,9 +55,13 @@
                 {% for item in cart_items %}
                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-red-100 text-[#9e1b32] rounded-lg flex items-center justify-center">
+                        {% if item.image_url %}
+                        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 flex-shrink-0">
+                        {% else %}
+                        <div class="w-12 h-12 bg-red-100 text-[#9e1b32] rounded-lg flex items-center justify-center flex-shrink-0">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                         </div>
+                        {% endif %}
                         <div>
                             {% if item.category %}
                             <span class="text-xs bg-red-100 text-[#9e1b32] font-bold px-2 py-0.5 rounded">{{ item.category }}</span>

@@ -60,13 +60,22 @@
             <div class="relative w-full h-40 flex-shrink-0 bg-slate-100 border-b border-gray-100">
                 {% if item.images %}
                     {% if item.images|length > 1 %}
-                    <div class="flex h-full w-full overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar bg-white">
+                    <div id="carousel-{{ item.id }}" class="flex h-full w-full overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar bg-white">
                         {% for img_url in item.images %}
                         <img src="{{ img_url }}" alt="{{ item.asset_description }}"
                              onclick="event.stopPropagation(); openImageLightbox('{{ img_url|escapejs }}', '{{ item.asset_description|escapejs }}')"
                              class="h-full w-full flex-shrink-0 object-contain snap-center cursor-zoom-in">
                         {% endfor %}
                     </div>
+                    <!-- 🟢 ลูกศรเลื่อนรูปด้วยเมาส์ (ไม่ต้องใช้ touchpad ลากก็ได้) -->
+                    <button type="button" onclick="event.stopPropagation(); scrollCarousel('carousel-{{ item.id }}', -1)"
+                            class="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-gray-500/60 hover:bg-gray-600/80 text-white flex items-center justify-center text-sm leading-none transition-colors">
+                        &#8249;
+                    </button>
+                    <button type="button" onclick="event.stopPropagation(); scrollCarousel('carousel-{{ item.id }}', 1)"
+                            class="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-gray-500/60 hover:bg-gray-600/80 text-white flex items-center justify-center text-sm leading-none transition-colors">
+                        &#8250;
+                    </button>
                     <span class="absolute bottom-1.5 right-1.5 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full pointer-events-none">
                         เลื่อนดู {{ item.images|length }} รูป
                     </span>
@@ -312,6 +321,14 @@ function toggleSelectAll() {
     if (selectAllBtn) {
         selectAllBtn.innerText = isAllSelected ? 'ยกเลิกการเลือกทั้งหมด' : 'เลือกทั้งหมด';
     }
+}
+
+// 🟢 เลื่อน carousel รูปภาพด้วยปุ่มลูกศร (สำหรับผู้ใช้เมาส์ที่ลากรูปโดยตรงไม่ได้)
+function scrollCarousel(carouselId, direction) {
+    const el = document.getElementById(carouselId);
+    if (!el) return;
+    const scrollAmount = el.clientWidth * direction;
+    el.scrollBy({ left: scrollAmount, behavior: 'smooth' });
 }
 
 // 🟢 เปิด/ปิด popup ดูรูปเต็มขนาด (คลิกที่รูปในการ์ดเพื่อดู ไม่ครอปภาพ)
