@@ -627,7 +627,7 @@ def request_form_view(request):
     now = datetime.now()
     default_start = now.strftime("%Y-%m-%dT%H:%M")  # format: 2569-08-12T14:30
     default_end = (now + timedelta(days=3)).strftime("%Y-%m-%dT%H:%M")  # +3 วัน
-    min_date = now.strftime("%Y-%m-%d")  # ห้ามเลือกวันที่ผ่านไป
+    min_date = now.strftime("%Y-%m-%dT%H:%M")
 
     context = {
         "cart_items": cart_items,
