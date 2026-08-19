@@ -186,11 +186,7 @@ def fetch_ssms_asset_images():
     return images_map
 
 
-<<<<<<< HEAD
-def fetch_ssms_grouped_equipments(query="", category=""):
-=======
 def fetch_ssms_grouped_equipments(query='', category='', status=''):
->>>>>>> feature/image_slide-image_request
     query_filters = []
     params = []
 
@@ -215,20 +211,12 @@ def fetch_ssms_grouped_equipments(query='', category='', status=''):
         WHERE 1=1{where_clause}
         ORDER BY TRY_CAST(assetNoMain AS BIGINT), TRY_CAST(assetNoSub AS INT)
     """
-<<<<<<< HEAD
-    # ดึงรายการ asset_no_main ที่ถูกยืมหรือของหมดใน Local DB มาลง set
-    unavailable_eqs = Equipment.objects.filter(
-        Q(status__in=["กำลังถูกยืม", "ติดยืม", "อยู่ระหว่างซ่อม", "ชำรุด", "ถูกยืม"])
-        | Q(available_quantity__lte=0)
-    )
-=======
 
     # 🟢 normalize สถานะที่ใช้กรอง ('พร้อมให้ยืม' และ 'พร้อมใช้งาน' ถือว่าเป็นสถานะเดียวกัน เหมือน logic เดิมในหน้า equipment_manage_view)
     status_filter = (status or '').strip()
     if status_filter in ('พร้อมให้ยืม', 'พร้อมใช้งาน'):
         status_filter = 'พร้อมให้ยืม'
 
->>>>>>> feature/image_slide-image_request
     unavailable_mains = set()
     status_main_map = {}   # 🟢 main_no -> set ของสถานะที่มีอยู่ในชุดนั้น (ใช้กรองการ์ด Bundle ตามสถานะ)
     status_key_map = {}    # 🟢 "accountDeterm|assetDescription" -> set ของสถานะ (ใช้กรองการ์ด Single ตามสถานะ)
@@ -241,11 +229,6 @@ def fetch_ssms_grouped_equipments(query='', category='', status=''):
 
         main_key_candidates = []
         if eq.asset_no_main:
-<<<<<<< HEAD
-            unavailable_mains.add(str(eq.asset_no_main).strip())
-        if eq.code and "-" in eq.code:
-            unavailable_mains.add(eq.code.split("-")[0].strip())
-=======
             main_key_candidates.append(str(eq.asset_no_main).strip())
         if eq.code and '-' in eq.code:
             main_key_candidates.append(eq.code.split('-')[0].strip())
@@ -256,7 +239,6 @@ def fetch_ssms_grouped_equipments(query='', category='', status=''):
 
         key_name = f"{(eq.category or '').strip()}|{(eq.name or '').strip()}"
         status_key_map.setdefault(key_name, set()).add(norm_st)
->>>>>>> feature/image_slide-image_request
 
     local_avail_map = {}
     local_qs = Equipment.objects.values("category", "name").annotate(
@@ -379,12 +361,6 @@ def fetch_ssms_grouped_equipments(query='', category='', status=''):
         if key_name not in local_avail_map:
             grouped_dict[key]["available_count"] += 1
 
-<<<<<<< HEAD
-    filtered_list = [
-        item for item in grouped_dict.values() if item["available_count"] > 0
-    ]
-    return categories, list(grouped_dict.values())
-=======
     result_list = list(grouped_dict.values())
 
     # 🟢 กรองการ์ดตามสถานะที่เลือก (ถ้ามี) — เช็คว่ากลุ่มนั้นมีอุปกรณ์สถานะที่ต้องการอยู่จริงหรือไม่
@@ -401,7 +377,6 @@ def fetch_ssms_grouped_equipments(query='', category='', status=''):
         result_list = filtered_list
 
     return categories, result_list
->>>>>>> feature/image_slide-image_request
 
 
 def fetch_ssms_stats():
@@ -803,27 +778,6 @@ def add_to_cart_view(request):
 
         cart = list(request.session.get("borrow_cart", []))
 
-<<<<<<< HEAD
-        # หากมีข้อมูลอุปกรณ์หลัก ให้ Push ลง Cart เป็นรายการแรกก่อน
-        if main_item_code or main_item_name:
-            eq_main = (
-                Equipment.objects.filter(code=main_item_code).first()
-                if main_item_code
-                else None
-            )
-            cart.append(
-                {
-                    "code": main_item_code or (eq_main.code if eq_main else ""),
-                    "category": eq_main.category if eq_main else main_item_category,
-                    "name": (
-                        f"{eq_main.name} (รหัส: {eq_main.code})"
-                        if eq_main
-                        else main_item_name
-                    ),
-                    "qty": 1,
-                }
-            )
-=======
         # 🟢 ดึง map รูปภาพครั้งเดียว แล้วนำไปจับคู่กับแต่ละรายการที่ใส่ลงตะกร้า
         asset_images = fetch_ssms_asset_images()
 
@@ -843,7 +797,6 @@ def add_to_cart_view(request):
                 'qty': 1,
                 'image_url': _eq_image_url(eq_main),  # 🟢 รูปภาพอุปกรณ์หลัก
             })
->>>>>>> feature/image_slide-image_request
 
         if selected_sub_items:
             sub_codes = [code for code in selected_sub_items if code != main_item_code]
@@ -853,25 +806,6 @@ def add_to_cart_view(request):
             for code in selected_sub_items:
                 eq = eq_map.get(code)
                 if eq:
-<<<<<<< HEAD
-                    cart.append(
-                        {
-                            "code": eq.code,
-                            "category": eq.category,
-                            "name": f"{eq.name} (รหัส: {eq.code})",
-                            "qty": 1,
-                        }
-                    )
-                else:
-                    cart.append(
-                        {
-                            "code": code,
-                            "category": "อุปกรณ์ในชุด",
-                            "name": f"อุปกรณ์ย่อยรหัส {code}",
-                            "qty": 1,
-                        }
-                    )
-=======
                     cart.append({
                         'code': eq.code,
                         'category': eq.category,
@@ -887,7 +821,6 @@ def add_to_cart_view(request):
                         'qty': 1,
                         'image_url': '',
                     })
->>>>>>> feature/image_slide-image_request
 
         elif not (main_item_code or main_item_name):
             item_category = request.POST.get("item_category", "")
@@ -902,16 +835,6 @@ def add_to_cart_view(request):
                     available_quantity__gt=0,
                 ).first()
 
-<<<<<<< HEAD
-                cart.append(
-                    {
-                        "code": eq_match.code if eq_match else "",
-                        "category": item_category,
-                        "name": item_name,
-                        "qty": qty,
-                    }
-                )
-=======
                 cart.append({
                     'code': eq_match.code if eq_match else '',
                     'category': item_category,
@@ -919,7 +842,6 @@ def add_to_cart_view(request):
                     'qty': qty,
                     'image_url': _eq_image_url(eq_match),  # 🟢 รูปภาพอุปกรณ์ชิ้นเดียว
                 })
->>>>>>> feature/image_slide-image_request
 
         request.session["borrow_cart"] = cart
         request.session.modified = True
@@ -947,17 +869,6 @@ def add_group_to_cart_view(request, group_id):
                 group_name = equipment_obj.group.asset_description
 
             if equipment_obj:
-<<<<<<< HEAD
-                cart.append(
-                    {
-                        "id": equipment_obj.code,
-                        "name": equipment_obj.category,
-                        "type": "Bundle" if equipment_obj.is_bundle else "ครุภัณฑ์หลัก",
-                        "qty": 1,
-                    }
-                )
-                request.session["borrow_cart"] = cart
-=======
                 # 🟢 รูปภาพอุปกรณ์ (จับคู่ตาม accountDeterm + assetDescription เหมือนหน้า home)
                 asset_images = fetch_ssms_asset_images()
                 img_urls = asset_images.get(f"{_norm_text(equipment_obj.category)}|{_norm_text(equipment_obj.name)}", [])
@@ -969,7 +880,6 @@ def add_group_to_cart_view(request, group_id):
                     'image_url': img_urls[0] if img_urls else '',
                 })
                 request.session['borrow_cart'] = cart
->>>>>>> feature/image_slide-image_request
                 request.session.modified = True
                 messages.success(
                     request,
@@ -1000,18 +910,6 @@ def add_group_to_cart_view(request, group_id):
                 return redirect("borrow_app:home")
 
             first_item = items[0]
-<<<<<<< HEAD
-            cart.append(
-                {
-                    "code": first_item.get("code", ""),
-                    "category": first_item.get("category", ""),
-                    "name": first_item.get("name", ""),
-                    "type": "Bundle",
-                    "qty": 1,
-                }
-            )
-            request.session["borrow_cart"] = cart
-=======
             cart.append({
                 'code': first_item.get('code', ''),
                 'category': first_item.get('category', ''),
@@ -1021,7 +919,6 @@ def add_group_to_cart_view(request, group_id):
                 'image_url': (ssms_group.get('images') or [''])[0],  # 🟢 ใช้รูปแรกของกลุ่ม (รวมรูปทุกชิ้นในชุดแล้วจากหน้า home)
             })
             request.session['borrow_cart'] = cart
->>>>>>> feature/image_slide-image_request
             request.session.modified = True
             messages.success(
                 request,
@@ -1478,36 +1375,7 @@ def equipment_manage_view(request):
 
     # --- เริ่มต้นส่วนที่มีการแก้ไข ---
     try:
-<<<<<<< HEAD
-        categories, grouped_equipments = fetch_ssms_grouped_equipments(
-            query="", category=""
-        )
-
-        def get_group_status(group):
-            available = group.get("available_count", 0)
-            total = group.get("total_count", 0)
-
-            if total <= 0:
-                return None
-
-            if available == 0:
-                return "กำลังถูกยืม"
-            elif available == total:
-                return "พร้อมให้ยืม"
-            else:
-                return None
-
-        # ⭐ เพิ่มการ filter grouped_equipments ตามสถานะที่เลือก
-        if selected_status and grouped_equipments:
-            grouped_equipments = [
-                g
-                for g in grouped_equipments
-                if get_group_status(g) == selected_status  # Filter ตามสถานะ
-            ]
-
-=======
         categories, grouped_equipments = fetch_ssms_grouped_equipments(query='', category='', status=selected_status)
->>>>>>> feature/image_slide-image_request
         if group_id and grouped_equipments:
             selected_group = next(
                 (g for g in grouped_equipments if g["id"] == group_id), None
