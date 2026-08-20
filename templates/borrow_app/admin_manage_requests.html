@@ -1,28 +1,31 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6 pb-12">
     <!-- Header Bar & Search/Filter Section -->
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
         <div>
             <h2 class="text-xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
-                จัดการคำร้องขอยืม-คืนอุปกรณ์
+                <span class="p-2 bg-red-50 text-swu-red rounded-xl">📦</span>
+                <span>จัดการคำร้องขอยืม-คืนอุปกรณ์</span>
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">ตรวจสอบ พิจารณาอนุมัติ และตรวจรับอุปกรณ์คืนในระบบ</p>
+            <p class="text-xs text-slate-400 mt-1">ตรวจสอบ พิจารณาอนุมัติ และตรวจรับอุปกรณ์คืนในระบบ</p>
         </div>
 
         <!-- Search Bar -->
         <form method="GET" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
             <input type="hidden" name="status" value="{{ selected_status }}">
-            <div class="relative flex-1 sm:w-64">
-                <input type="text" name="q" value="{{ search_q }}" placeholder="ค้นเลขคำร้อง / ชื่อผู้ยืม..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all">
+            <div class="relative flex-1 sm:w-72">
+                <input type="text" name="q" value="{{ search_q }}" placeholder="ค้นเลขคำร้อง / ชื่อผู้ยืม..." class="w-full bg-slate-50/50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all duration-200">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </span>
             </div>
-            <button type="submit" class="px-4 py-2 bg-swu-red hover:bg-swu-red-dark text-white text-xs font-semibold rounded-xl shadow-sm transition-all active:scale-95 flex items-center gap-1.5 shrink-0">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <button type="submit" class="px-5 py-2.5 bg-swu-red hover:bg-swu-red-dark text-white text-xs font-bold rounded-2xl shadow-sm transition-all duration-200 active:scale-95 flex items-center gap-1.5 shrink-0">
                 <span>ค้นหา</span>
             </button>
             {% if search_q %}
-            <a href="?status={{ selected_status }}" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-xl transition text-center shrink-0">
+            <a href="?status={{ selected_status }}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-2xl transition text-center shrink-0">
                 ล้างคำค้น
             </a>
             {% endif %}
@@ -31,12 +34,13 @@
 
     {% if selected_status == 'all' %}
     <!-- Full Overview Table for 'all' -->
-    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div class="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+    <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
             <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                ประวัติการยืมของทุกบัญชีผู้ใช้
+                <span>📋</span>
+                <span>ประวัติการยืมของทุกบัญชีผู้ใช้</span>
             </h3>
-            <span class="text-[11px] text-slate-400 font-medium">ทั้งหมด {{ all_requests|length }} รายการ</span>
+            <span class="text-xs text-slate-600 font-bold bg-slate-100 px-3 py-1 rounded-full border border-slate-200">ทั้งหมด {{ all_requests|length }} รายการ</span>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
@@ -55,23 +59,34 @@
                         <td class="p-4 font-mono font-bold text-slate-900">{{ req.request_number }}</td>
                         <td class="p-4 font-medium">
                             <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">
+                                <div class="w-7 h-7 rounded-full bg-red-50 text-swu-red font-bold flex items-center justify-center text-xs border border-red-100">
                                     {{ req.user.username|slice:":1"|upper }}
                                 </div>
-                                <span>{{ req.user.username }}</span>
+                                <span class="font-bold text-slate-800">{{ req.user.username }}</span>
                             </div>
                         </td>
-                        <td class="p-4 text-slate-600 max-w-xs truncate">{{ req.items_summary }}</td>
-                        <td class="p-4 text-slate-500">{{ req.created_at|date:"Y-m-d H:i" }}</td>
+                        <td class="p-4 text-slate-600">
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for item in req.items.all %}
+                                <div class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-xl text-xs">
+                                    <span class="font-semibold text-slate-800">{{ item.equipment.name|default:item.item_name }}</span>
+                                    <span class="font-bold text-swu-red bg-red-50 border border-red-100 px-1.5 py-0.2 rounded-md text-[10px]">x{{ item.quantity }}</span>
+                                </div>
+                                {% empty %}
+                                <span class="text-slate-400">{{ req.items_summary }}</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="p-4 text-slate-500 font-mono">{{ req.created_at|date:"j M Y " }}</td>
                         <td class="p-4">
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                                 {{ req.status }}
                             </span>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="p-12 text-center text-slate-400">ไม่พบคำร้องในระบบ</td>
+                        <td colspan="5" class="p-12 text-center text-slate-400 font-medium">ไม่พบคำร้องในระบบ</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -83,12 +98,13 @@
     <div class="grid gap-6">
         {% if selected_status == 'all' or not selected_status or selected_status == 'รอการอนุมัติ' %}
         <!-- 1. Section: คำร้องรออนุมัติ -->
-        <div class="bg-white rounded-2xl border border-amber-200/80 shadow-sm overflow-hidden">
-            <div class="p-4 sm:p-5 border-b border-amber-100 bg-amber-50/40 flex justify-between items-center">
+        <div class="bg-white rounded-3xl border border-amber-200/80 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-amber-100 bg-amber-50/40 flex justify-between items-center">
                 <h3 class="font-bold text-amber-950 text-sm flex items-center gap-2">
-                    คำร้องรอการอนุมัติ
+                    <span>⏳</span>
+                    <span>คำร้องรอการอนุมัติ</span>
                 </h3>
-                <span class="text-xs font-bold text-amber-700 bg-amber-100 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                <span class="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-200 px-3 py-1 rounded-full">
                     {{ requests_list|length }} รายการ
                 </span>
             </div>
@@ -96,88 +112,92 @@
                 <table class="w-full text-left text-xs">
                     <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100 tracking-wider">
                         <tr>
-                            <th class="p-3.5">เลขที่คำร้อง</th>
-                            <th class="p-3.5">ผู้ขอยืม</th>
-                            <th class="p-3.5">รายการอุปกรณ์</th>
-                            <th class="p-3.5">วัตถุประสงค์</th>
-                            <th class="p-3.5">ช่วงเวลาขอยืม</th>
-                            <th class="p-3.5 text-center">การจัดการ</th>
+                            <th class="p-4">เลขที่คำร้อง</th>
+                            <th class="p-4">ผู้ขอยืม</th>
+                            <th class="p-4">รายการอุปกรณ์ที่ขอ</th>
+                            <th class="p-4">วัตถุประสงค์</th>
+                            <th class="p-4">ช่วงเวลาขอยืม</th>
+                            <th class="p-4 text-center">การจัดการ</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         {% for req in requests_list %}
                         <tr class="hover:bg-amber-50/30 transition-colors">
-                            <td class="p-3.5 font-mono font-bold text-slate-900">
+                            <td class="p-4 font-mono font-bold text-slate-900">
                                 <div>{{ req.request_number }}</div>
-                                <div class="text-[10px] font-normal text-slate-400 mt-0.5">{{ req.created_at|date:"Y-m-d H:i" }}</div>
+                                <div class="text-[10px] font-normal text-slate-400 mt-0.5 font-mono">{{ req.created_at|date:"j M Y " }}</div>
                             </td>
-                            <td class="p-3.5">
+                            <td class="p-4">
                                 <div class="font-bold text-slate-800">{{ req.user.get_full_name|default:req.user.username }}</div>
-                                <div class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">{{ req.location }}</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">📍 {{ req.location }}</div>
                             </td>
-                            <td class="p-3.5 space-y-1">
-                                {% for item in req.items.all %}
-                                <div class="text-xs">
-                                    <span class="font-semibold text-slate-800">{{ item.item_name }}</span>
-                                    {% if item.requested_category %}
-                                    <span class="text-slate-500">({{ item.requested_category }})</span>
-                                    {% endif %}
-                                    <span class="font-bold text-swu-red">x{{ item.quantity }}</span>
+                            <td class="p-4">
+                                <div class="space-y-1.5">
+                                    {% for item in req.items.all %}
+                                    <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-xl text-xs w-fit">
+                                        <span class="font-semibold text-slate-800">{{ item.item_name }}</span>
+                                        {% if item.requested_category %}
+                                        <span class="text-slate-400 text-[10px]">({{ item.requested_category }})</span>
+                                        {% endif %}
+                                        <span class="font-bold text-swu-red bg-red-50 border border-red-100 px-1.5 py-0.2 rounded-md text-[10px]">x{{ item.quantity }}</span>
+                                    </div>
+                                    {% endfor %}
                                 </div>
-                                {% endfor %}
                             </td>
-                            <td class="p-3.5 text-slate-600 max-w-xs truncate" title="{{ req.purpose }}">
+                            <td class="p-4 text-slate-600 max-w-xs truncate" title="{{ req.purpose }}">
                                 {{ req.purpose }}
                             </td>
-                            <td class="p-3.5 text-slate-600">
-                                <div class="font-medium text-slate-800">{{ req.start_datetime }}</div>
-                                <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime }}</div>
+                            <td class="p-4 text-slate-600 font-mono">
+                                <div class="font-bold text-slate-800">{{ req.start_datetime|date:"j M Y " }}</div>
+                                <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime|date:"j M Y " }}</div>
                             </td>
-                            <td class="p-3.5 text-center">
-                                <button type="button" onclick="toggleDetail({{ req.id }})" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 inline-flex items-center gap-1">
-                                    พิจารณา
+                            <td class="p-4 text-center">
+                                <button type="button" onclick="toggleDetail({{ req.id }})" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-2xl shadow-sm transition active:scale-95 inline-flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <span>พิจารณา</span>
                                 </button>
                             </td>
                         </tr>
                         <!-- Collapsible Drawer Form for Allocation -->
-                        <tr id="detail-{{ req.id }}" class="hidden bg-amber-50/80 border-t-2 border-amber-300">
+                        <tr id="detail-{{ req.id }}" class="hidden bg-amber-50/40 border-y-2 border-amber-200">
                             <td colspan="6" class="p-4 sm:p-6">
-                                <form method="POST" enctype="multipart/form-data" class="bg-white p-4 sm:p-5 rounded-xl border border-amber-200 shadow-sm space-y-4">
+                                <form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded-3xl border border-amber-200 shadow-lg space-y-5">
                                     {% csrf_token %}
                                     <input type="hidden" name="request_id" value="{{ req.id }}">
                                     
                                     <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                            จัดสรรระบุเครื่องอุปกรณ์ชิ้นจริง
+                                        <h4 class="text-xs font-bold text-slate-800 tracking-wide flex items-center gap-2">
+                                            <span>📦</span>
+                                            <span>จัดสรรระบุเครื่องอุปกรณ์ชิ้นจริง</span>
                                         </h4>
-                                        <span class="text-[11px] text-slate-400">คำร้องเลขที่: {{ req.request_number }}</span>
+                                        <span class="text-xs font-mono font-bold text-amber-900 bg-amber-100 px-3 py-1 rounded-full">คำร้องเลขที่: {{ req.request_number }}</span>
                                     </div>
 
                                     <div class="space-y-3">
                                         {% for item in req.items.all %}
                                         {% if item.item_name and "รหัส:" in item.item_name %}
                                         <!-- Fixed Equipment Bundle Display -->
-                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200/60 text-xs">
-                                            <span class="font-semibold text-slate-800">{{ item.item_name }}{% if item.requested_category %} &mdash; {{ item.requested_category }}{% endif %} (x{{ item.quantity }})</span>
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+                                            <span class="font-bold text-slate-800">{{ item.item_name }}{% if item.requested_category %} &mdash; {{ item.requested_category }}{% endif %} (x{{ item.quantity }})</span>
                                             {% if item.equipment %}
                                             <input type="hidden" name="equipment_for_{{ item.id }}" value="{{ item.equipment_id }}">
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
                                                 ✅ {{ item.equipment.code }} &mdash; {{ item.equipment.name }}
                                             </span>
                                             {% else %}
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 font-medium">
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 font-bold">
                                                 ⚠️ ยังไม่มีอุปกรณ์ระบุสำหรับรายการนี้
                                             </span>
                                             {% endif %}
                                         </div>
                                         {% else %}
                                         <!-- Dropdown Equipment Selection -->
-                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200/60 text-xs">
-                                            <span class="font-semibold text-slate-800 min-w-[200px]">{{ item.item_name }}{% if item.requested_category %} &mdash; {{ item.requested_category }}{% endif %} (x{{ item.quantity }})</span>
-                                            <select name="equipment_for_{{ item.id }}" class="border border-slate-300 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 flex-1">
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-slate-50/70 rounded-2xl border border-slate-200 text-xs">
+                                            <span class="font-bold text-slate-800 sm:w-1/3">{{ item.item_name }}{% if item.requested_category %} &mdash; {{ item.requested_category }}{% endif %} (x{{ item.quantity }})</span>
+                                            <select name="equipment_for_{{ item.id }}" class="w-full sm:w-2/3 border border-slate-200 rounded-xl px-3.5 py-2 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-semibold text-slate-800">
                                                 <option value="">— กรุณาเลือกอุปกรณ์เพื่อจัดสรร —</option>
                                                 {% for eq in item.available_equipment_options %}
-                                                <option value="{{ eq.id }}" {% if item.equipment_id == eq.id %}selected{% endif %}>{{ eq.code }} &mdash; {{ eq.name }} (เหลือ {{ eq.available_quantity }} ชิ้น)</option>
+                                                <option value="{{ eq.id }}" {% if item.equipment_id == eq.id %}selected{% endif %}>{{ eq.code }} &mdash; {{ eq.name }} (คงเหลือ {{ eq.available_quantity }} ชิ้น)</option>
                                                 {% empty %}
                                                 <option value="" disabled>⚠️ ไม่มีอุปกรณ์พร้อมให้ยืมในหมวดนี้</option>
                                                 {% endfor %}
@@ -189,25 +209,27 @@
 
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                                         <div>
-                                            <label class="block text-xs font-bold text-rose-700 mb-1">เหตุผลที่ไม่อนุมัติ (ระบุเฉพาะกรณีปฏิเสธคำร้อง)</label>
-                                            <textarea name="reject_reason" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500" placeholder="ระบุเหตุผล..."></textarea>
+                                            <label class="block text-xs font-semibold text-rose-700 mb-1.5">เหตุผลที่ไม่อนุมัติ (ระบุเฉพาะกรณีปฏิเสธคำร้อง)</label>
+                                            <textarea name="reject_reason" rows="2" class="w-full bg-slate-50/50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all resize-none" placeholder="ระบุเหตุผล..."></textarea>
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-700 mb-1">📸 รูปถ่ายอุปกรณ์ก่อนการรับ (BEFORE)</label>
-                                            <input type="file" name="pickup_image" accept="image/*" capture="environment" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:bg-white focus:outline-none">
+                                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">📸 รูปถ่ายอุปกรณ์ก่อนการรับ (BEFORE)</label>
+                                            <input type="file" name="pickup_image" accept="image/*" capture="environment" class="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:outline-none">
                                             <p class="text-[10px] text-slate-400 mt-1">ถ่ายภาพสภาพอุปกรณ์จริงก่อนส่งมอบแก่ผู้ยืม</p>
                                         </div>
                                     </div>
 
-                                    <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100">
-                                        <button type="submit" name="action" value="approve" onclick="return validateApproval(this.form)" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 flex items-center gap-1">
-                                            <span>✓</span> อนุมัติ & จัดสรรอุปกรณ์
-                                        </button>
-                                        <button type="submit" name="action" value="reject" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 flex items-center gap-1">
-                                            <span>✕</span> ไม่อนุมัติคำร้อง
-                                        </button>
-                                        <button type="button" onclick="toggleDetail({{ req.id }})" class="px-3.5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                                    <div class="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 justify-end">
+                                        <button type="button" onclick="toggleDetail({{ req.id }})" class="px-5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition">
                                             ยกเลิก
+                                        </button>
+                                        <button type="submit" name="action" value="reject" class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-2xl shadow-sm transition active:scale-95 flex items-center gap-1.5">
+                                            <span>✕</span>
+                                            <span>ไม่อนุมัติคำร้อง</span>
+                                        </button>
+                                        <button type="submit" name="action" value="approve" onclick="return validateApproval(this.form)" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-2xl shadow-sm transition active:scale-95 flex items-center gap-1.5">
+                                            <span>✓</span>
+                                            <span>อนุมัติ & จัดสรรอุปกรณ์</span>
                                         </button>
                                     </div>
                                 </form>
@@ -215,7 +237,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="p-8 text-center text-slate-400">ไม่มีคำร้องที่รอการพิจารณาอนุมัติในขณะนี้</td>
+                            <td colspan="6" class="p-12 text-center text-slate-400 font-medium">ไม่มีคำร้องที่รอการพิจารณาอนุมัติในขณะนี้</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -225,80 +247,136 @@
         {% endif %}
 
         {% if selected_status == 'all' or not selected_status or selected_status == 'รอตรวจสอบการคืน' %}
-        <!-- 2. Section: คำขอคืนรอตรวจสอบ -->
-        <div class="bg-white rounded-2xl border border-sky-200/80 shadow-sm overflow-hidden">
-            <div class="p-4 sm:p-5 border-b border-sky-100 bg-sky-50/40 flex justify-between items-center">
-                <h3 class="font-bold text-sky-950 text-sm flex items-center gap-2">
-                    คำขอคืนรอตรวจสอบสภาพ
-                </h3>
-                <span class="text-xs font-bold text-sky-700 bg-sky-100 border border-sky-200 px-2.5 py-0.5 rounded-full">
-                    {{ return_requests|length }} รายการ
-                </span>
+        <!-- 2. Section: คำขอคืนรอตรวจสอบสภาพ (Expandable Accordion Inspection Sheet) -->
+        <div class="bg-white rounded-3xl border border-sky-200/80 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-sky-100 bg-sky-50/40 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <h3 class="font-bold text-sky-950 text-sm flex items-center gap-2">
+                        <span>🔍</span>
+                        <span>คำขอคืนรอตรวจสอบสภาพ</span>
+                    </h3>
+                    <span class="text-xs font-bold text-sky-800 bg-sky-100 border border-sky-200 px-3 py-1 rounded-full">
+                        {{ return_requests|length }} รายการ
+                    </span>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100 tracking-wider">
                         <tr>
-                            <th class="p-3.5">เลขที่คำร้อง</th>
-                            <th class="p-3.5">ผู้ขอยืม</th>
-                            <th class="p-3.5">รายการอุปกรณ์</th>
-                            <th class="p-3.5">กำหนดคืนเดิม</th>
-                            <th class="p-3.5">หมายเหตุ & หลักฐานคืน</th>
-                            <th class="p-3.5 text-center min-w-[240px]">การตรวจรับคืน</th>
+                            <th class="p-4">เลขที่คำร้อง</th>
+                            <th class="p-4">ผู้ขอยืม</th>
+                            <th class="p-4">รายการอุปกรณ์ที่ยืม</th>
+                            <th class="p-4">กำหนดคืนเดิม</th>
+                            <th class="p-4">หลักฐานการคืน</th>
+                            <th class="p-4 text-center">การตรวจรับคืน</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         {% for req in return_requests %}
                         <tr class="hover:bg-sky-50/30 transition-colors">
-                            <td class="p-3.5 font-mono font-bold text-slate-900">
+                            <td class="p-4 font-mono font-bold text-slate-900">
                                 <div>{{ req.request_number }}</div>
-                                <div class="text-[10px] font-normal text-slate-400 mt-0.5">{{ req.created_at|date:"Y-m-d H:i" }}</div>
+                                <div class="text-[10px] font-normal text-slate-400 mt-0.5 font-mono">{{ req.created_at|date:"j M Y " }}</div>
                             </td>
-                            <td class="p-3.5">
-                                <div class="font-bold text-slate-800">{{ req.user.username }}</div>
-                                <div class="text-[11px] text-slate-500 mt-0.5">{{ req.location }}</div>
+                            <td class="p-4">
+                                <div class="font-bold text-slate-800">{{ req.user.get_full_name|default:req.user.username }}</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">📍 {{ req.location }}</div>
                             </td>
-                            <td class="p-3.5 text-slate-700 font-medium">{{ req.items_summary }}</td>
-                            <td class="p-3.5 text-slate-600">
-                                <div class="font-medium text-slate-800">{{ req.start_datetime }}</div>
-                                <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime }}</div>
+                            <!-- Equipment List Broken Down into Badges -->
+                            <td class="p-4">
+                                <div class="space-y-1.5">
+                                    {% for item in req.items.all %}
+                                    <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-xl text-xs w-fit">
+                                        <span class="font-semibold text-slate-800">{{ item.equipment.name|default:item.item_name }}</span>
+                                        {% if item.equipment.code %}
+                                        <span class="text-[10px] font-mono text-slate-400">({{ item.equipment.code }})</span>
+                                        {% endif %}
+                                        <span class="font-bold text-sky-700 bg-sky-50 border border-sky-100 px-1.5 py-0.2 rounded-md text-[10px]">x{{ item.quantity }}</span>
+                                    </div>
+                                    {% empty %}
+                                    <span class="text-slate-600 font-medium">{{ req.items_summary }}</span>
+                                    {% endfor %}
+                                </div>
                             </td>
-                            <td class="p-3.5">
-                                <div class="text-slate-700 font-medium">{{ req.return_note|default:'-' }}</div>
+                            <td class="p-4 text-slate-600 font-mono">
+                                <div class="font-bold text-slate-800">{{ req.start_datetime|date:"j M Y " }}</div>
+                                <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime|date:"j M Y " }}</div>
+                            </td>
+                            <td class="p-4">
+                                <div class="text-slate-700 font-medium">{{ req.return_note|default:'ไม่มีหมายเหตุ' }}</div>
                                 {% if req.return_image %}
-                                <a href="{{ req.return_image.url }}" target="_blank" class="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-sky-600 hover:text-sky-800 hover:underline">
-                                    <span>🖼️</span> ดูภาพหลักฐานคืน
+                                <a href="{{ req.return_image.url }}" target="_blank" class="inline-flex items-center gap-1 mt-1.5 text-[11px] font-bold text-sky-600 hover:text-sky-800 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-100 hover:underline">
+                                    <span>🖼️</span> ภาพหลักฐานคืน
                                 </a>
                                 {% endif %}
                             </td>
-                            <td class="p-3.5">
-                                <form method="POST" class="space-y-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                            <!-- Inspection Action Button -->
+                            <td class="p-4 text-center">
+                                <button type="button" onclick="toggleReturnInspection({{ req.id }})" class="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-2xl shadow-sm transition active:scale-95 inline-flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                    <span>ตรวจรับคืน</span>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Expandable Return Inspection Form Drawer -->
+                        <tr id="return-inspection-{{ req.id }}" class="hidden bg-sky-50/40 border-y-2 border-sky-200">
+                            <td colspan="6" class="p-4 sm:p-6">
+                                <form method="POST" class="bg-white p-6 rounded-3xl border border-sky-200 shadow-lg space-y-5">
                                     {% csrf_token %}
                                     <input type="hidden" name="request_id" value="{{ req.id }}">
-                                    
-                                    <div class="space-y-1.5 text-left">
+
+                                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="px-3 py-1 bg-sky-100 text-sky-800 rounded-full text-xs font-bold">📋 แบบฟอร์มตรวจรับอุปกรณ์คืน</span>
+                                            <span class="text-xs font-mono font-bold text-slate-700">คำร้อง #{{ req.request_number }}</span>
+                                        </div>
+                                        <span class="text-xs text-slate-400 font-medium">ผู้คืน: {{ req.user.get_full_name|default:req.user.username }}</span>
+                                    </div>
+
+                                    <!-- Full Width Equipment Inspection Checklist -->
+                                    <div class="space-y-2.5">
+                                        <label class="block text-xs font-bold text-slate-700">ระบุสภาพอุปกรณ์แต่ละรายการ</label>
                                         {% for item in req.items.all %}
-                                        {% if item.return_status == 'รอตรวจรับ' %}
-                                        <div class="flex items-center justify-between text-[11px] bg-white p-1.5 rounded-lg border border-slate-200">
-                                            <span class="font-semibold text-slate-800 truncate max-w-[120px]">{{ item.equipment.name|default:item.item_name }}</span>
-                                            <select name="return_condition_{{ item.id }}" class="rounded-md border border-slate-300 px-1.5 py-0.5 text-[11px] bg-slate-50 focus:bg-white">
-                                                <option value="ปกติ">ปกติ</option>
-                                                <option value="ชำรุด">ชำรุด</option>
-                                                <option value="สูญหาย">สูญหาย</option>
-                                            </select>
+                                        {% if item.return_status == 'รอตรวจรับ' or not item.return_status %}
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-slate-50/70 rounded-2xl border border-slate-200">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                                                <span class="font-bold text-slate-800 text-xs">{{ item.equipment.name|default:item.item_name }}</span>
+                                                {% if item.equipment.code %}
+                                                <span class="font-mono text-xs text-slate-400">({{ item.equipment.code }})</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs text-slate-500 font-medium">สภาพ:</span>
+                                                <select name="return_condition_{{ item.id }}" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500">
+                                                    <option value="ปกติ" class="text-emerald-700 font-semibold">✅ ปกติ (สมบูรณ์)</option>
+                                                    <option value="ชำรุด" class="text-amber-700 font-semibold">⚠️ ชำรุด (ต้องส่งซ่อม)</option>
+                                                    <option value="สูญหาย" class="text-rose-700 font-semibold">❌ สูญหาย</option>
+                                                </select>
+                                            </div>
                                         </div>
                                         {% endif %}
                                         {% endfor %}
                                     </div>
 
-                                    <textarea name="return_incomplete_comment" rows="2" maxlength="500" class="w-full rounded-xl border border-slate-200 p-2 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500" placeholder="ระบุเหตุผลกรณีคืนไม่ครบ/ชำรุด..."></textarea>
-                                    
-                                    <div class="flex items-center justify-center gap-2">
-                                        <button type="submit" name="action" value="approve" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95 flex-1">
-                                            คืนสำเร็จ
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">หมายเหตุการตรวจรับ / กรณีชำรุดหรือคืนไม่ครบ</label>
+                                        <textarea name="return_incomplete_comment" rows="2" maxlength="500" class="w-full rounded-2xl border border-slate-200 p-3 text-xs text-slate-800 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all resize-none" placeholder="ระบุรายละเอียดสภาพอุปกรณ์เพิ่มเติม (ถ้ามี)..."></textarea>
+                                    </div>
+
+                                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                                        <button type="button" onclick="toggleReturnInspection({{ req.id }})" class="px-5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition">
+                                            ยกเลิก
                                         </button>
-                                        <button type="submit" name="action" value="reject" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95 flex-1">
-                                            คืนไม่ครบ
+                                        <button type="submit" name="action" value="reject" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-bold shadow-sm transition active:scale-95 flex items-center gap-1.5">
+                                            <span>⚠️</span>
+                                            <span>คืนไม่ครบ / มีปัญหา</span>
+                                        </button>
+                                        <button type="submit" name="action" value="approve" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-sm transition active:scale-95 flex items-center gap-1.5">
+                                            <span>✓</span>
+                                            <span>ตรวจรับคืนสำเร็จ</span>
                                         </button>
                                     </div>
                                 </form>
@@ -306,7 +384,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="p-8 text-center text-slate-400">ไม่มีคำขอคืนที่รอการตรวจสอบในขณะนี้</td>
+                            <td colspan="6" class="p-12 text-center text-slate-400 font-medium">ไม่มีคำขอคืนที่รอการตรวจสอบในขณะนี้</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -317,12 +395,13 @@
 
         {% if not selected_status or selected_status == 'อนุมัติ' or selected_status == 'all' %}
         <!-- 3. Section: คำร้องที่อนุมัติแล้ว -->
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <div class="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                 <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                    คำร้องที่อนุมัติแล้ว (อยู่ระหว่างใช้งาน)
+                    <span>✅</span>
+                    <span>คำร้องที่อนุมัติแล้ว (อยู่ระหว่างใช้งาน)</span>
                 </h3>
-                <span class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                <span class="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
                     {{ active_requests|length }} รายการ
                 </span>
             </div>
@@ -330,38 +409,49 @@
                 <table class="w-full text-left text-xs">
                     <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100 tracking-wider">
                         <tr>
-                            <th class="p-3.5">เลขที่คำร้อง</th>
-                            <th class="p-3.5">ผู้ขอยืม</th>
-                            <th class="p-3.5">รายการอุปกรณ์</th>
-                            <th class="p-3.5">ช่วงเวลาการยืม</th>
-                            <th class="p-3.5">สถานะ</th>
+                            <th class="p-4">เลขที่คำร้อง</th>
+                            <th class="p-4">ผู้ขอยืม</th>
+                            <th class="p-4">รายการอุปกรณ์</th>
+                            <th class="p-4">ช่วงเวลาการยืม</th>
+                            <th class="p-4">สถานะ</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         {% for req in active_requests %}
                         <tr class="hover:bg-slate-50/80 transition-colors">
-                            <td class="p-3.5 font-mono font-bold text-slate-900">
+                            <td class="p-4 font-mono font-bold text-slate-900">
                                 <div>{{ req.request_number }}</div>
-                                <div class="text-[10px] font-normal text-slate-400 mt-0.5">{{ req.created_at|date:"Y-m-d H:i" }}</div>
+                                <div class="text-[10px] font-normal text-slate-400 mt-0.5 font-mono">{{ req.created_at|date:"j M Y " }}</div>
                             </td>
-                            <td class="p-3.5">
-                                <div class="font-bold text-slate-800">{{ req.user.username }}</div>
-                                <div class="text-[11px] text-slate-500 mt-0.5">{{ req.location }}</div>
+                            <td class="p-4">
+                                <div class="font-bold text-slate-800">{{ req.user.get_full_name|default:req.user.username }}</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">📍 {{ req.location }}</div>
                             </td>
-                            <td class="p-3.5 text-slate-700 font-medium max-w-xs truncate">{{ req.items_summary }}</td>
-                            <td class="p-3.5 text-slate-600">
-                                <div class="font-medium text-slate-800">{{ req.start_datetime }}</div>
-                                <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime }}</div>
+                            <td class="p-4">
+                                <div class="flex flex-wrap gap-1.5">
+                                    {% for item in req.items.all %}
+                                    <div class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-xl text-xs">
+                                        <span class="font-semibold text-slate-800">{{ item.equipment.name|default:item.item_name }}</span>
+                                        <span class="font-bold text-slate-500 bg-slate-200/60 px-1.5 py-0.2 rounded-md text-[10px]">x{{ item.quantity }}</span>
+                                    </div>
+                                    {% empty %}
+                                    <span class="text-slate-600 font-medium max-w-xs truncate">{{ req.items_summary }}</span>
+                                    {% endfor %}
+                                </div>
                             </td>
-                            <td class="p-3.5">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <td class="p-4 text-slate-600 font-mono">
+                                <div class="font-bold text-slate-800">{{ req.start_datetime|date:"j M Y " }}</div>
+                                <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime|date:"j M Y " }}</div>
+                            </td>
+                            <td class="p-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                     {{ req.status }}
                                 </span>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="p-8 text-center text-slate-400">ไม่มีรายการคำร้องที่อยู่ระหว่างการใช้งาน</td>
+                            <td colspan="5" class="p-12 text-center text-slate-400 font-medium">ไม่มีรายการคำร้องที่อยู่ระหว่างการใช้งาน</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -371,6 +461,11 @@
         {% endif %}
     </div>
     {% endif %}
+
+    <!-- Footer Copyright -->
+    <div class="text-center text-xs text-slate-400 pt-4 font-medium">
+        © 2026 Srinakharinwirot University. All rights reserved.
+    </div>
 </div>
 {% endblock %}
 
@@ -378,14 +473,19 @@
 <script>
 function toggleDetail(reqId) {
     const panel = document.getElementById('detail-' + reqId);
-    panel.classList.toggle('hidden');
+    if (panel) panel.classList.toggle('hidden');
+}
+
+function toggleReturnInspection(reqId) {
+    const panel = document.getElementById('return-inspection-' + reqId);
+    if (panel) panel.classList.toggle('hidden');
 }
 
 function validateApproval(form) {
     const selects = form.querySelectorAll('select[name^="equipment_for_"]');
     for (const select of selects) {
         if (!select.value) {
-            const label = select.closest('.flex-col, .flex').querySelector('.font-semibold').textContent.trim();
+            const label = select.closest('.flex-col, .flex').querySelector('.font-bold').textContent.trim();
             alert('กรุณาเลือกอุปกรณ์สำหรับรายการ: ' + label);
             select.focus();
             return false;

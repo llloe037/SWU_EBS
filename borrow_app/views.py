@@ -2,9 +2,11 @@ import traceback
 import hashlib
 import uuid
 import json
+import os
 import pandas as pd
 import datetime as dt
 from datetime import datetime, timedelta
+import cloudinary.exceptions
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
@@ -998,6 +1000,7 @@ def remove_from_cart_view(request, index):
 
 
 @login_required
+@transaction.atomic
 def return_request_view(request, request_id):
     borrow_req = get_object_or_404(
         BorrowRequest, request_number=request_id, user=request.user
@@ -1019,12 +1022,33 @@ def return_request_view(request, request_id):
                     request, "กรุณาเลือกรายการอุปกรณ์ที่ต้องการคืนอย่างน้อย 1 รายการ"
                 )
                 return redirect("borrow_app:return_request", request_id=request_id)
-            borrow_req.return_note = request.POST.get("return_note", "").strip()
-            if request.FILES.get("return_image"):
-                borrow_req.return_image = request.FILES["return_image"]
-            selected_items.update(return_status="รอตรวจรับ")
-            borrow_req.status = "รอตรวจสอบการคืน"
-            borrow_req.save()
+
+            # ตรวจสอบนามสกุลไฟล์ก่อนบันทึก/อัปโหลด
+            return_image_file = request.FILES.get("return_image")
+            if return_image_file:
+                allowed_extensions = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
+                _, ext = os.path.splitext(return_image_file.name.lower())
+                if ext not in allowed_extensions:
+                    messages.error(
+                        request,
+                        f"ไฟล์ '{return_image_file.name}' ไม่รองรับ — กรุณาอัปโหลดไฟล์รูปภาพ (.jpg, .jpeg, .png, .webp, .heic) เท่านั้น",
+                    )
+                    return redirect("borrow_app:return_request", request_id=request_id)
+
+            try:
+                borrow_req.return_note = request.POST.get("return_note", "").strip()
+                if return_image_file:
+                    borrow_req.return_image = return_image_file
+                selected_items.update(return_status="รอตรวจรับ")
+                borrow_req.status = "รอตรวจสอบการคืน"
+                borrow_req.save()
+            except cloudinary.exceptions.Error as e:
+                messages.error(
+                    request,
+                    f"เกิดข้อผิดพลาดขณะอัปโหลดรูปภาพ กรุณาลองใหม่อีกครั้ง ({e})",
+                )
+                return redirect("borrow_app:return_request", request_id=request_id)
+
             messages.success(
                 request, "คำขอคืนอุปกรณ์ถูกส่งแล้ว โปรดรอการตรวจสอบจากผู้ดูแลระบบ"
             )
