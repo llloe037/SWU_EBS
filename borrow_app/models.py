@@ -14,7 +14,7 @@ class EquipmentGroup(models.Model):
         max_length=255, verbose_name="assetDescription / ประเภท"
     )
     image = CloudinaryField(
-        "รูปภาพหมวดหมู่", folder="equipment_groups/", blank=True, null=True
+        "รูปภาพหมวดหมู่", folder="swu_erp/equipment_groups", blank=True, null=True
     )
 
     class Meta:
@@ -61,7 +61,7 @@ class Equipment(models.Model):
     )
     is_bundle = models.BooleanField(default=False, verbose_name="เป็นชุด Bundle")
     image = CloudinaryField(
-        "รูปภาพอุปกรณ์", folder="equipments/", blank=True, null=True
+        "รูปภาพอุปกรณ์", folder="swu_erp/equipments", blank=True, null=True
     )
 
     # --- ฟิลด์เพิ่มเติมจาก SSMS ---
@@ -180,7 +180,7 @@ class BorrowRequest(models.Model):
     )
     pickup_image = CloudinaryField(
         "รูปหลักฐานการรับอุปกรณ์ (ก่อนยืม)",
-        folder="pickup_evidence/",
+        folder="swu_erp/pickup_evidence",
         blank=True,
         null=True,
     )
@@ -200,7 +200,7 @@ class BorrowRequest(models.Model):
         blank=True, null=True, verbose_name="ความเห็นกรณีคืนไม่ครบ"
     )
     return_image = CloudinaryField(
-        "รูปหลักฐานการคืน", folder="return_evidence/", blank=True, null=True
+        "รูปหลักฐานการคืน", folder="swu_erp/return_evidence", blank=True, null=True
     )
     returned_at = models.DateTimeField(null=True, blank=True, verbose_name="วันที่คืน")
     received_by = models.ForeignKey(
