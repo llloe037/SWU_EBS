@@ -1,6 +1,7 @@
 import traceback
 import hashlib
 import uuid
+import json
 import pandas as pd
 import datetime as dt
 from datetime import datetime, timedelta
@@ -1086,6 +1087,24 @@ def admin_dashboard_view(request):
     overdue_count = BorrowRequest.objects.filter(status="เกินกำหนด").count()
     total_request_count = BorrowRequest.objects.count()
 
+    # 📊 Chart 1: Top 5 อุปกรณ์ที่ถูกยืมมากที่สุด
+    top_items_qs = (
+        BorrowItem.objects.values("item_name")
+        .annotate(total_borrowed=Sum("quantity"))
+        .order_by("-total_borrowed")[:5]
+    )
+    chart_top_labels = [item["item_name"] or "ไม่ระบุชื่อ" for item in top_items_qs]
+    chart_top_data = [item["total_borrowed"] for item in top_items_qs]
+
+    # 📊 Chart 2: สัดส่วนอุปกรณ์ในคลังตามหมวดหมู่
+    cat_qs = (
+        Equipment.objects.values("category")
+        .annotate(total=Count("id"))
+        .order_by("-total")[:5]
+    )
+    chart_cat_labels = [c["category"] or "หมวดหมู่ทั่วไป" for c in cat_qs]
+    chart_cat_data = [c["total"] for c in cat_qs]
+
     context = {
         "pending_count": pending_count,
         "return_pending_count": return_pending_count,
@@ -1096,6 +1115,11 @@ def admin_dashboard_view(request):
             "-created_at"
         )[:5],
         "eq_stats": eq_stats,
+        # ส่งค่า JSON สำหรับ Chart.js
+        "chart_top_labels": json.dumps(chart_top_labels),
+        "chart_top_data": json.dumps(chart_top_data),
+        "chart_cat_labels": json.dumps(chart_cat_labels),
+        "chart_cat_data": json.dumps(chart_cat_data),
     }
     return render(request, "borrow_app/admin_dashboard.html", context)
 

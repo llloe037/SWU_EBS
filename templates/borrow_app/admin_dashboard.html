@@ -22,7 +22,7 @@
         </div>
     </div>
 
-    <!-- 2. Primary Actionable KPIs (เน้นงานที่ Admin ต้องเร่งดำเนินการ) -->
+    <!-- 2. Primary Actionable KPIs -->
     <div>
         <div class="flex items-center justify-between mb-3">
             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
@@ -59,7 +59,7 @@
                 </div>
             </a>
 
-            <!-- เกินกำหนดคืน (Alert สีแดง มศว) -->
+            <!-- เกินกำหนดคืน -->
             <a href="{% url 'borrow_app:admin_manage_requests' %}?status=เกินกำหนด" class="group relative bg-red-50/70 border border-red-200/80 hover:border-red-400 p-5 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md">
                 <div class="flex items-start justify-between">
                     <div>
@@ -75,10 +75,37 @@
         </div>
     </div>
 
-    <!-- 3. Secondary Mini-Stats: สถานะคลังอุปกรณ์ & สรุปภาพรวม -->
+    <!-- 3. Visual Analytics Section (ส่วนกราฟสถิติ) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- กราฟแท่ง: 5 อันดับอุปกรณ์ยอดฮิต -->
+        <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <span>🏆</span> 5 อันดับอุปกรณ์ที่มีการยืมสูงสุด
+                </h4>
+                <span class="text-[10px] font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">นับตามจำนวนชิ้น</span>
+            </div>
+            <div class="relative h-64 w-full">
+                <canvas id="topBorrowedChart"></canvas>
+            </div>
+        </div>
+
+        <!-- กราฟโดนัท: สัดส่วนอุปกรณ์ในคลังตามหมวดหมู่ -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <span>📁</span> สัดส่วนอุปกรณ์ตามหมวดหมู่
+                </h4>
+            </div>
+            <div class="relative h-64 w-full flex items-center justify-center">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Secondary Mini-Stats: สถานะคลังอุปกรณ์ & สรุปภาพรวม -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        
-        <!-- 3.1 Single Metric Bar (ยุบรวมสถานะคลังอุปกรณ์) -->
+        <!-- Single Metric Bar -->
         <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-2">
@@ -90,7 +117,6 @@
                 </a>
             </div>
 
-            <!-- Horizontal Segmented Stats Bar -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <a href="{% url 'borrow_app:equipment_manage' %}?status=พร้อมให้ยืม" class="p-3 bg-emerald-50/60 border border-emerald-100 rounded-xl hover:bg-emerald-50 transition">
                     <p class="text-[11px] font-semibold text-emerald-800">พร้อมให้ยืม</p>
@@ -111,7 +137,7 @@
             </div>
         </div>
 
-        <!-- 3.2 System Activity Stats -->
+        <!-- System Activity Stats -->
         <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">📈 ภาพรวมการใช้งาน</span>
@@ -129,10 +155,9 @@
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- 4. Interactive Quick Action Table (คำร้องรอการอนุมัติ) -->
+    <!-- 5. Interactive Quick Action Table -->
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
         <div class="p-5 bg-white border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
@@ -192,6 +217,65 @@
             </table>
         </div>
     </div>
-
 </div>
+
+<!-- Load Chart.js CDN & Script Initialization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Data From Django Backend
+        const topLabels = {{ chart_top_labels|safe }};
+        const topData = {{ chart_top_data|safe }};
+        const catLabels = {{ chart_cat_labels|safe }};
+        const catData = {{ chart_cat_data|safe }};
+
+        // 1. Top Borrowed Chart (Bar Chart)
+        const ctxTop = document.getElementById('topBorrowedChart').getContext('2d');
+        new Chart(ctxTop, {
+            type: 'bar',
+            data: {
+                labels: topLabels.length ? topLabels : ['ยังไม่มีข้อมูล'],
+                datasets: [{
+                    label: 'จำนวนที่ยืม (ชิ้น)',
+                    data: topData.length ? topData : [0],
+                    backgroundColor: '#9e1b32',
+                    borderRadius: 8,
+                    maxBarThickness: 36
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { precision: 0 } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 2. Category Share Chart (Doughnut Chart)
+        const ctxCat = document.getElementById('categoryChart').getContext('2d');
+        new Chart(ctxCat, {
+            type: 'doughnut',
+            data: {
+                labels: catLabels.length ? catLabels : ['ไม่มีข้อมูล'],
+                datasets: [{
+                    data: catData.length ? catData : [1],
+                    backgroundColor: ['#9e1b32', '#2563eb', '#10b981', '#f59e0b', '#64748b'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                },
+                cutout: '70%'
+            }
+        });
+    });
+</script>
 {% endblock %}
