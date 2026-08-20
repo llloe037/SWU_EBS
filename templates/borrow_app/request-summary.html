@@ -10,11 +10,11 @@
     <div class="w-full max-w-3xl mx-auto mb-10 mt-4">
         <div class="relative flex justify-between items-center">
             <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-gray-200 -z-10 rounded-full"></div>
-            <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-2/3 h-1 bg-[#9e1b32] -z-10 rounded-full transition-all duration-500"></div>
+            <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-2/3 h-1 bg-swu-red -z-10 rounded-full transition-all duration-500"></div>
 
             <!-- Step 1 -->
             <div class="relative z-10 flex flex-col items-center">
-                <div class="w-10 h-10 bg-[#9e1b32] text-white rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50 shadow-sm">
+                <div class="w-10 h-10 bg-swu-red text-white rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50 shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                 </div>
                 <div class="absolute top-12 text-center w-32 -ml-16 left-1/2 text-sm font-bold text-gray-700">เลือกอุปกรณ์</div>
@@ -22,7 +22,7 @@
 
             <!-- Step 2 -->
             <div class="relative z-10 flex flex-col items-center">
-                <div class="w-10 h-10 bg-[#9e1b32] text-white rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50 shadow-sm">
+                <div class="w-10 h-10 bg-swu-red text-white rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50 shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                 </div>
                 <div class="absolute top-12 text-center w-32 -ml-16 left-1/2 text-sm font-bold text-gray-700">ระบุรายละเอียด</div>
@@ -30,7 +30,7 @@
 
             <!-- Step 3 (Active) -->
             <div class="relative z-10 flex flex-col items-center">
-                <div class="w-10 h-10 bg-[#9e1b32] text-white rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50 shadow-[0_0_15px_rgba(158,27,50,0.6)]">
+                <div class="w-10 h-10 bg-swu-red text-white rounded-full flex items-center justify-center font-bold ring-4 ring-gray-50 shadow-[0_0_15px_rgba(158,27,50,0.6)]">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <div class="absolute top-12 text-center w-32 -ml-16 left-1/2 text-sm font-bold text-[#9e1b32]">ตรวจสอบข้อมูล</div>
@@ -80,7 +80,7 @@
                     {% for item in cart_items %}
                     <li class="flex justify-between items-center text-gray-700">
                         <span class="flex items-center">
-                            <span class="w-2 h-2 bg-[#9e1b32] rounded-full mr-3"></span>
+                            <span class="w-2 h-2 bg-swu-red rounded-full mr-3"></span>
                             <strong>{{ item.name }}</strong>
                             <span class="text-xs text-gray-400 ml-2">({{ item.type }})</span>
                         </span>
@@ -139,7 +139,7 @@
             
             <form action="{% url 'borrow_app:confirm_request' %}" method="POST">
                 {% csrf_token %}
-                <button type="submit" class="px-6 py-2.5 bg-[#9e1b32] text-white font-bold rounded-lg hover:bg-[#7a1527] transition-colors shadow-md text-sm flex items-center space-x-2">
+                <button type="submit" class="px-6 py-2.5 bg-swu-red text-white font-bold rounded-lg hover:bg-[#7a1527] transition-colors shadow-md text-sm flex items-center space-x-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                     <span>ส่งคำร้อง</span>
                 </button>

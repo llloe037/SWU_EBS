@@ -18,7 +18,7 @@
             {% endfor %}
         </select>
     </div>
-    <button type="submit" class="bg-[#9e1b32] text-white px-6 py-2 rounded-lg hover:bg-[#7a1527] transition-colors flex items-center shadow-sm">
+    <button type="submit" class="bg-swu-red text-white px-6 py-2 rounded-lg hover:bg-[#7a1527] transition-colors flex items-center shadow-sm">
         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
         กรองข้อมูล
     </button>
@@ -26,7 +26,7 @@
 </form>
 
 <!-- Bundle Alert Banner -->
-<div class="bg-[#9e1b32] rounded-xl p-4 mb-4 text-white shadow-md">
+<div class="bg-swu-red rounded-xl p-4 mb-4 text-white shadow-md">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
         <div class="flex items-center gap-3">
             <div class="bg-white/20 p-2 rounded-lg border border-white/30">
@@ -107,7 +107,7 @@
                     {% if item.available_count > 0 %}
                     <button type="button" 
                             onclick="openBundleModal('{{ item.asset_no_main|default:''|escapejs }}', '{{ item.account_determ|escapejs }}', '{{ item.asset_description|escapejs }}')" 
-                            class="w-full bg-[#9e1b32] text-white text-sm font-semibold px-3 py-2.5 rounded-lg hover:bg-[#7a1527] transition-colors">
+                            class="w-full bg-swu-red text-white text-sm font-semibold px-3 py-2.5 rounded-lg hover:bg-[#7a1527] transition-colors">
                         เพิ่มลงคำร้อง
                     </button>
                     {% else %}
@@ -128,7 +128,7 @@
 <!-- 🟢 Modal สำหรับเลือกรายการอุปกรณ์ย่อย (Bundle) -->
 <div id="bundleModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm hidden flex items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-2xl overflow-hidden border border-gray-100">
-        <div class="bg-[#9e1b32] text-white px-6 py-4 flex justify-between items-center">
+        <div class="bg-swu-red text-white px-6 py-4 flex justify-between items-center">
             <h3 class="text-lg font-bold">เลือกรายการอุปกรณ์ย่อยในชุด</h3>
             <button onclick="closeBundleModal()" class="text-white/80 hover:text-white text-2xl font-bold leading-none">&times;</button>
         </div>
@@ -170,7 +170,7 @@
                         <button type="button" onclick="closeBundleModal()" class="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50 font-medium text-sm">
                             ยกเลิก
                         </button>
-                        <button type="submit" class="px-5 py-2 bg-[#9e1b32] text-white rounded-lg hover:bg-[#7a1527] font-semibold text-sm shadow-sm transition-colors">
+                        <button type="submit" class="px-5 py-2 bg-swu-red text-white rounded-lg hover:bg-[#7a1527] font-semibold text-sm shadow-sm transition-colors">
                             เพิ่มลงรายการยืม
                         </button>
                     </div>
