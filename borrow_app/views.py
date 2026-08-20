@@ -771,18 +771,12 @@ def cancel_request_view(request, request_id):
             status="รอการอนุมัติ",
         )
 
-        # ⭐ Restore equipment quantity ก่อน cancel
-        with transaction.atomic():
-            for item in borrow_request.items.all():
-                if item.equipment:
-                    # Restore quantity
-                    item.equipment.available_quantity += item.quantity
-                    item.equipment.status = "พร้อมให้ยืม"
-                    item.equipment.save(update_fields=["available_quantity", "status"])
+        # คำร้องสถานะ "รอการอนุมัติ" ยังไม่ได้รับการอนุมัติ
+        # ดังนั้น available_quantity ของ Equipment ยังไม่ถูกหักออก — ไม่ต้อง restore อะไรเลย
+        borrow_request.status = "ยกเลิก"
+        borrow_request.save(update_fields=["status"])
 
-            # ตรงนี้ค่อย update status
-            borrow_request.status = "ยกเลิก"
-            borrow_request.save(update_fields=["status"])
+    return redirect("borrow_app:history")
 
     return redirect("borrow_app:history")
 
