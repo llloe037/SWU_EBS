@@ -41,7 +41,7 @@
 
 ### 2.5 Database / Backend
 - **SSMS Sync**: Live sync (`sync_ssms_direct_view`) และ Full sync (`import_ssms` management command)
-- **Equipment CRUD + Excel Import** ผ่าน pandas/openpyxl
+- **Equipment Import** ผ่าน Excel (pandas/openpyxl) หรือ Live Sync จาก SSMS — ไม่มี CRUD จากหน้าเว็บ Admin จัดการได้เฉพาะเปลี่ยนสถานะอุปกรณ์เท่านั้น
 - **Atomic Approval**: `BorrowRequest.approve()` ตัด `available_quantity` แบบ atomic ป้องกัน race condition
 
 ---
@@ -90,8 +90,10 @@
 
 **Equipment:**
 ```
-พร้อมให้ยืม ↔ กำลังถูกยืม (toggle ตอน approve/complete return)
-พร้อมให้ยืม → อยู่ระหว่างซ่อม / ชำรุด / สูญหาย (Admin manual)
+พร้อมให้ยืม ↔ กำลังถูกยืม (toggle ตอน approve/complete return — ระบบจัดการอัตโนมัติ)
+พร้อมให้ยืม → อยู่ระหว่างซ่อม / ชำรุด / สูญหาย (Admin เปลี่ยนสถานะ via change_status, available_quantity = 0)
+ชำรุด / สูญหาย / อยู่ระหว่างซ่อม → พร้อมให้ยืม (Admin เปลี่ยนสถานะ via change_status, available_quantity restore = total_quantity)
+หมายเหตุ: "กำลังถูกยืม" Admin เปลี่ยนไม่ได้ — ระบบจัดการอัตโนมัติเท่านั้น
 ```
 
 ### 3.5 Dual Database Architecture
