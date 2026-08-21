@@ -1173,6 +1173,35 @@ def admin_manage_requests_view(request):
                     borrow_req.save()
                 borrow_req.reject(reason)
 
+        elif borrow_req.status in ["อนุมัติ", "เกินกำหนด", "คืนไม่ครบ"]:
+            if action == "admin_return":
+                # Admin บันทึกการคืนโดยตรง — ไม่ผ่านขั้น "รอตรวจสอบการคืน"
+                # mark items ที่เลือกเป็น "รอตรวจรับ" ก่อน แล้วเรียก verify ทันที
+                selected_ids = request.POST.getlist("return_item_ids")
+                items_to_return = borrow_req.items.filter(
+                    id__in=selected_ids, return_status="ยังไม่คืน"
+                )
+                if not items_to_return.exists():
+                    messages.error(request, "กรุณาเลือกรายการอุปกรณ์ที่ต้องการคืนอย่างน้อย 1 รายการ")
+                    return redirect("borrow_app:admin_manage_requests")
+
+                items_to_return.update(return_status="รอตรวจรับ")
+
+                conditions = {
+                    str(item.id): request.POST.get(f"return_condition_{item.id}", "ปกติ")
+                    for item in items_to_return
+                }
+                comment = request.POST.get("return_comment", "").strip()
+                try:
+                    borrow_req.verify_pending_return_items(request.user, conditions, comment)
+                    # บันทึกรูป AFTER ถ้ามี
+                    if request.FILES.get("return_image"):
+                        borrow_req.return_image = request.FILES["return_image"]
+                        borrow_req.save(update_fields=["return_image"])
+                    messages.success(request, f"บันทึกการคืนอุปกรณ์คำร้อง {borrow_req.request_number} เรียบร้อยแล้ว")
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+
         elif borrow_req.status == "รอตรวจสอบการคืน":
             if action == "approve":
                 conditions = {
@@ -1271,6 +1300,7 @@ def admin_manual_request_view(request):
         location = request.POST.get("location")
         purpose = request.POST.get("purpose")
         end_date = request.POST.get("end_date")
+        pickup_method = request.POST.get("pickup_method", "รับด้วยตนเอง")
 
         selected_equipment_ids = request.POST.getlist("equipment_ids")
 
@@ -1283,9 +1313,16 @@ def admin_manual_request_view(request):
             start_datetime=_parse_date(start_date),
             end_datetime=_parse_date(end_date),
             purpose=f"[ผู้ขอยืม: {borrower_name} / สังกัด: {department}] {purpose}",
-            location=location,
+            location=location or "-",
+            pickup_method=pickup_method,
+            approved_by=request.user,
             status="อนุมัติ",
         )
+
+        # รูปหลักฐานการรับ (pickup)
+        if request.FILES.get("pickup_image"):
+            borrow_request.pickup_image = request.FILES["pickup_image"]
+            borrow_request.save(update_fields=["pickup_image"])
 
         for eq_id in selected_equipment_ids:
             equipment = Equipment.objects.filter(id=eq_id).first()
@@ -1295,17 +1332,42 @@ def admin_manual_request_view(request):
                     equipment=equipment,
                     item_id=str(equipment.id),
                     item_name=equipment.name,
+                    requested_category=equipment.category,
+                    return_status="ยังไม่คืน",
                 )
                 equipment.status = "กำลังถูกยืม"
                 if equipment.available_quantity > 0:
                     equipment.available_quantity -= 1
-                equipment.save()
+                equipment.save(update_fields=["status", "available_quantity"])
 
-        return redirect("borrow_app:admin_dashboard")
+        messages.success(request, f"สร้างคำร้อง {req_num} เรียบร้อยแล้ว")
+        return redirect("borrow_app:admin_manage_requests")
 
-    equipments = Equipment.objects.filter(status="พร้อมให้ยืม")
+    # ส่ง EquipmentGroup + equipments แบบจัดกลุ่ม (เหมือน Local DB fallback ของ home)
+    from django.db.models import Sum
+    groups = (
+        EquipmentGroup.objects
+        .prefetch_related("equipments")
+        .filter(
+            equipments__status__in=["พร้อมให้ยืม", "พร้อมใช้งาน"],
+            equipments__available_quantity__gt=0,
+        )
+        .annotate(
+            available_count=Sum(
+                "equipments__available_quantity",
+                filter=Q(
+                    equipments__status__in=["พร้อมให้ยืม", "พร้อมใช้งาน"]
+                ),
+            )
+        )
+        .distinct()
+        .order_by("account_determ", "asset_description")
+    )
+    today = datetime.now().strftime("%Y-%m-%d")
     return render(
-        request, "borrow_app/admin_manual_request.html", {"equipments": equipments}
+        request,
+        "borrow_app/admin_manual_request.html",
+        {"groups": groups, "today": today},
     )
 
 

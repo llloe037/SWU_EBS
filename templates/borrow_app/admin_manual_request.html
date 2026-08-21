@@ -3,264 +3,208 @@
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6 pb-12">
 
-    <!-- 1. Header & Stepper Card -->
-    <div class="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-6">
-        
-        <!-- Header Title & Subtitle -->
+    <!-- Header -->
+    <div class="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
             <div>
-                <h2 class="text-xl font-bold text-slate-800">ระบุรายละเอียดการยืม</h2>
-                <p class="text-xs text-slate-400 mt-0.5">กรอกข้อมูลผู้ยืม อุปกรณ์ที่ต้องการ และกำหนดวันเวลาใช้งาน</p>
+                <h2 class="text-xl font-bold text-slate-800">สร้างคำร้องแทนผู้ยืม</h2>
+                <p class="text-xs text-slate-400 mt-0.5">สำหรับผู้ยืมที่ไม่มีบัญชีในระบบ — Admin เป็นผู้บันทึกและอนุมัติเอง</p>
             </div>
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-swu-red text-xs font-semibold self-start sm:self-center border border-red-100">
                 <span class="w-1.5 h-1.5 rounded-full bg-swu-red animate-pulse"></span>
-                ขั้นตอนที่ 2 จาก 4
+                Manual Request
             </span>
-        </div>
-
-        <!-- Stepper Component (1-4) -->
-        <div class="relative max-w-2xl mx-auto py-2">
-            <!-- เส้นเชื่อมระหว่างจุด -->
-            <div class="absolute left-8 right-8 top-5 h-0.5 bg-slate-200 -z-0"></div>
-            <div class="absolute left-8 w-1/3 top-5 h-0.5 bg-swu-red -z-0"></div>
-
-            <div class="relative z-10 flex items-center justify-between">
-                <!-- Step 1 (Completed) -->
-                <div class="flex flex-col items-center">
-                    <div class="w-10 h-10 rounded-2xl bg-swu-red text-white flex items-center justify-center font-bold text-xs shadow-md shadow-red-950/10">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                    </div>
-                    <span class="text-xs font-semibold text-swu-red mt-2">เลือกอุปกรณ์</span>
-                </div>
-
-                <!-- Step 2 (Active) -->
-                <div class="flex flex-col items-center">
-                    <div class="w-10 h-10 rounded-2xl bg-swu-red text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-red-950/20 ring-4 ring-red-50">
-                        2
-                    </div>
-                    <span class="text-xs font-bold text-slate-900 mt-2">ระบุรายละเอียด</span>
-                </div>
-
-                <!-- Step 3 -->
-                <div class="flex flex-col items-center">
-                    <div class="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center font-bold text-xs">
-                        3
-                    </div>
-                    <span class="text-xs font-medium text-slate-400 mt-2">ตรวจสอบข้อมูล</span>
-                </div>
-
-                <!-- Step 4 -->
-                <div class="flex flex-col items-center">
-                    <div class="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center font-bold text-xs">
-                        4
-                    </div>
-                    <span class="text-xs font-medium text-slate-400 mt-2">ยืนยันการยืม</span>
-                </div>
-            </div>
         </div>
     </div>
 
-    <!-- 2. Form Section -->
-    <form method="POST" class="space-y-6">
+    <!-- Form -->
+    <form method="POST" enctype="multipart/form-data" class="space-y-6" id="manual-form">
         {% csrf_token %}
 
-        <!-- Group 1: ข้อมูลผู้ยืมและอุปกรณ์ -->
-        <div class="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-6">
-            <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100 text-slate-800">
+        <!-- ส่วน 1: ข้อมูลผู้ยืม -->
+        <div class="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-5">
+            <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100">
                 <div class="p-2 bg-red-50 text-swu-red rounded-xl">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 </div>
-                <h3 class="text-base font-bold">ข้อมูลผู้ยืม และอุปกรณ์ที่ต้องการ</h3>
+                <h3 class="text-base font-bold text-slate-800">ข้อมูลผู้ยืม</h3>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <!-- ชื่อผู้ยืม -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
-                        ชื่อ-นามสกุล <span class="text-swu-red">*</span>
-                    </label>
-                    <div class="relative">
-                        <input type="text" name="borrower_name" placeholder="กรอกชื่อ-นามสกุลของคุณ" 
-                               class="w-full bg-slate-50/50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all duration-200" required>
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        </span>
-                    </div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">ชื่อ-นามสกุล <span class="text-swu-red">*</span></label>
+                    <input type="text" name="borrower_name" placeholder="กรอกชื่อ-นามสกุล" required
+                        class="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all">
                 </div>
-
-                <!-- สังกัด / หน่วยงาน -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
-                        สังกัด / คณะ / หน่วยงาน <span class="text-swu-red">*</span>
-                    </label>
-                    <div class="relative">
-                        <input type="text" name="department" placeholder="กรอกสังกัด หรือหน่วยงานที่สังกัด" 
-                               class="w-full bg-slate-50/50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all duration-200" required>
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                        </span>
-                    </div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">สังกัด / หน่วยงาน <span class="text-swu-red">*</span></label>
+                    <input type="text" name="department" placeholder="คณะ / กอง / หน่วยงาน" required
+                        class="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all">
                 </div>
-
-                <!-- เลือกอุปกรณ์ที่ยืม (Full width) -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">สถานที่นำไปใช้</label>
+                    <input type="text" name="location" placeholder="เช่น อาคาร 14 ชั้น 3"
+                        class="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">ช่องทางการรับอุปกรณ์</label>
+                    <select name="pickup_method"
+                        class="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all">
+                        <option value="รับด้วยตนเอง">รับด้วยตนเอง</option>
+                        <option value="ต้องการบริการติดตั้ง">ต้องการบริการติดตั้ง ณ สถานที่</option>
+                    </select>
+                </div>
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
-                        ค้นหาและเลือกอุปกรณ์ <span class="text-swu-red">*</span>
-                    </label>
-                    <div class="relative">
-                        <input type="text" id="equipment-search" autocomplete="off" placeholder="พิมพ์ชื่ออุปกรณ์ หรือรหัสครุภัณฑ์เพื่อค้นหา..." 
-                               class="w-full bg-slate-50/50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all duration-200">
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        </span>
-
-                        <!-- Dropdown ผลการค้นหา -->
-                        <div id="equipment-dropdown" class="hidden absolute z-50 left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100">
-                            {% for eq in equipments %}
-                                <div class="equipment-option px-4 py-3 cursor-pointer hover:bg-red-50/60 hover:text-swu-red text-slate-700 text-sm transition-colors flex items-center justify-between"
-                                     data-id="{{ eq.id }}"
-                                     data-name="{{ eq.name }}"
-                                     data-code="{{ eq.code|default:'' }}">
-                                    <span class="font-medium">{{ eq.name }}</span>
-                                    {% if eq.code %}
-                                        <span class="text-xs bg-slate-100 text-slate-500 px-2.5 py-0.5 rounded-md font-mono">{{ eq.code }}</span>
-                                    {% endif %}
-                                </div>
-                            {% empty %}
-                                <div class="px-4 py-3 text-slate-400 text-sm text-center">
-                                    ไม่มีรายการอุปกรณ์พร้อมใช้งานในระบบ
-                                </div>
-                            {% endfor %}
-
-                            <!-- กรณีค้นหาแล้วไม่พบ -->
-                            <div id="equipment-no-result" class="hidden px-4 py-3 text-slate-400 text-sm text-center">
-                                ไม่พบอุปกรณ์ที่ค้นหา
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- แสดงอุปกรณ์ที่เลือก -->
-                    <div id="selected-equipment" class="mt-3 hidden">
-                        <div class="inline-flex items-center gap-2 bg-red-50/80 border border-red-200 rounded-xl px-3.5 py-2 text-sm text-swu-red font-medium shadow-sm">
-                            <svg class="w-4 h-4 text-swu-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                            <span id="selected-equipment-text"></span>
-                            <button type="button" id="remove-equipment" class="ml-1 text-red-400 hover:text-swu-red p-0.5 rounded-lg hover:bg-red-100 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Hidden input ส่งค่า -->
-                    <input type="hidden" name="equipment_ids" id="equipment-id" value="">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">วัตถุประสงค์</label>
+                    <textarea name="purpose" rows="2" placeholder="อธิบายวัตถุประสงค์..."
+                        class="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all resize-none"></textarea>
                 </div>
             </div>
         </div>
 
-        <!-- Group 2: กำหนดการ สถานที่ และวัตถุประสงค์ -->
-        <div class="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-6">
-            <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100 text-slate-800">
+        <!-- ส่วน 2: วันที่ -->
+        <div class="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-5">
+            <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100">
                 <div class="p-2 bg-red-50 text-swu-red rounded-xl">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 </div>
-                <h3 class="text-base font-bold">กำหนดเวลา และสถานที่ใช้งาน</h3>
+                <h3 class="text-base font-bold text-slate-800">กำหนดวันที่ยืม-คืน</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">วันที่เริ่มยืม <span class="text-swu-red">*</span></label>
+                    <input type="date" name="start_date" id="start_date"
+                        min="{{ today }}" value="{{ today }}" required
+                        class="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all cursor-pointer">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">กำหนดส่งคืน <span class="text-swu-red">*</span></label>
+                    <input type="date" name="end_date" id="end_date"
+                        min="{{ today }}" required
+                        class="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all cursor-pointer">
+                </div>
+            </div>
+        </div>
+
+        <!-- ส่วน 3: เลือกอุปกรณ์ -->
+        <div class="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-5">
+            <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                <div class="p-2 bg-red-50 text-swu-red rounded-xl">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>
+                <h3 class="text-base font-bold text-slate-800">เลือกอุปกรณ์ที่ต้องการยืม <span class="text-swu-red">*</span></h3>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <!-- วันที่เริ่มยืม -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
-                        วันที่เริ่มยืม <span class="text-swu-red">*</span>
-                    </label>
-                    <div class="relative">
-                        <input type="date" name="start_date" class="w-full bg-slate-50/50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all duration-200 cursor-pointer" required>
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        </span>
-                    </div>
-                </div>
+            <!-- Search -->
+            <div class="relative">
+                <input type="text" id="eq-search" placeholder="ค้นหาชื่ออุปกรณ์ หรือรหัสครุภัณฑ์..." autocomplete="off"
+                    class="w-full bg-slate-50/50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </span>
+            </div>
 
-                <!-- เวลาที่เริ่มยืม -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
-                        เวลาที่เริ่มยืม
-                    </label>
-                    <div class="relative">
-                        <input type="time" name="start_time" class="w-full bg-slate-50/50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all duration-200 cursor-pointer">
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </span>
-                    </div>
-                </div>
-
-                <!-- กำหนดส่งคืนวันที่ -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
-                        กำหนดส่งคืนวันที่ <span class="text-swu-red">*</span>
-                    </label>
-                    <div class="relative">
-                        <input type="date" name="end_date" class="w-full bg-slate-50/50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all duration-200 cursor-pointer" required>
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        </span>
-                    </div>
-                </div>
-
-                <!-- สถานที่นำไปใช้ -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
-                        สถานที่นำไปใช้
-                    </label>
-                    <div class="relative">
-                        <input type="text" name="location" placeholder="เช่น อาคาร 14 ชั้น 3 ห้อง 302" 
-                               class="w-full bg-slate-50/50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all duration-200">
-                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        </span>
-                    </div>
-                </div>
-
-                <!-- วัตถุประสงค์ (Full Width) -->
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">
-                        วัตถุประสงค์เพื่อการใช้งาน
-                    </label>
-                    <textarea name="purpose" rows="3" placeholder="อธิบายวัตถุประสงค์ในการนำอุปกรณ์ไปใช้งานพอสังเขป..." 
-                              class="w-full bg-slate-50/50 border border-slate-200 rounded-xl p-3 text-slate-800 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-swu-red/20 focus:border-swu-red transition-all duration-200 resize-none"></textarea>
-                </div>
-
-                <!-- ประเภทการรับ-ส่งคืน (Full Width) -->
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-700 mb-2">
-                        ประเภทการรับ-ส่งคืน
-                    </label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <label class="flex items-center p-3.5 bg-slate-50/60 border border-slate-200 rounded-2xl cursor-pointer hover:bg-red-50/40 hover:border-red-200 transition-all duration-200">
-                            <input type="checkbox" name="pickup_type" value="self" class="w-4 h-4 rounded border-slate-300 text-swu-red focus:ring-swu-red">
-                            <span class="ml-3 text-sm font-medium text-slate-700">รับ-ส่งคืน อุปกรณ์ด้วยตนเอง</span>
+            <!-- รายการอุปกรณ์แบบจัดกลุ่ม -->
+            <div id="equipment-list" class="space-y-4 max-h-[520px] overflow-y-auto pr-1">
+                {% for group in groups %}
+                <div class="eq-group border border-slate-200 rounded-2xl overflow-hidden">
+                    <!-- Group Header -->
+                    <button type="button" onclick="toggleGroup(this)"
+                        class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition text-left">
+                        <div class="flex items-center gap-2.5">
+                            {% if group.image %}
+                            <img src="{{ group.image.url }}" class="w-8 h-8 rounded-xl object-cover border border-slate-200">
+                            {% else %}
+                            <div class="w-8 h-8 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-swu-red text-xs font-bold">
+                                {{ group.account_determ|slice:":1" }}
+                            </div>
+                            {% endif %}
+                            <div>
+                                <div class="text-xs font-bold text-slate-800">{{ group.asset_description }}</div>
+                                <div class="text-[10px] text-slate-400">{{ group.account_determ }}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                พร้อม {{ group.available_count }}
+                            </span>
+                            <svg class="w-4 h-4 text-slate-400 transition-transform group-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </div>
+                    </button>
+                    <!-- Equipment Items -->
+                    <div class="eq-group-items divide-y divide-slate-100">
+                        {% for eq in group.equipments.all %}
+                        {% if eq.status in "พร้อมให้ยืม,พร้อมใช้งาน" and eq.available_quantity > 0 %}
+                        <label class="eq-item flex items-center justify-between px-4 py-3 hover:bg-red-50/30 cursor-pointer transition"
+                            data-name="{{ eq.name|lower }}" data-code="{{ eq.code|lower }}">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" name="equipment_ids" value="{{ eq.id }}"
+                                    class="w-4 h-4 rounded border-slate-300 text-swu-red focus:ring-swu-red">
+                                <div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs font-semibold text-slate-800">{{ eq.name }}</span>
+                                        {% if eq.is_bundle %}
+                                        <span class="text-[9px] font-bold text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-md">Bundle</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 font-mono">{{ eq.code }}</div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                                เหลือ {{ eq.available_quantity }}
+                            </span>
                         </label>
-                        <label class="flex items-center p-3.5 bg-slate-50/60 border border-slate-200 rounded-2xl cursor-pointer hover:bg-red-50/40 hover:border-red-200 transition-all duration-200">
-                            <input type="checkbox" name="pickup_type" value="install" class="w-4 h-4 rounded border-slate-300 text-swu-red focus:ring-swu-red">
-                            <span class="ml-3 text-sm font-medium text-slate-700">ต้องการบริการติดตั้งอุปกรณ์ ณ สถานที่ใช้งาน</span>
-                        </label>
+                        {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
+                {% empty %}
+                <p class="text-center text-slate-400 text-sm py-8">ไม่มีอุปกรณ์พร้อมให้ยืมในระบบ</p>
+                {% endfor %}
+            </div>
+
+            <!-- รายการที่เลือกแล้ว -->
+            <div id="selected-summary" class="hidden">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-bold text-slate-700">อุปกรณ์ที่เลือก:</span>
+                    <span id="selected-count" class="text-xs font-bold text-swu-red bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">0 รายการ</span>
+                </div>
+                <div id="selected-tags" class="flex flex-wrap gap-1.5"></div>
+            </div>
+        </div>
+
+        <!-- ส่วน 4: รูปหลักฐาน -->
+        <div class="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-5">
+            <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                <div class="p-2 bg-red-50 text-swu-red rounded-xl">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+                <h3 class="text-base font-bold text-slate-800">รูปหลักฐาน</h3>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">📸 รูปอุปกรณ์ก่อนส่งมอบ (BEFORE)</label>
+                <input type="file" name="pickup_image" accept="image/png, image/jpeg, image/webp, image/heic"
+                    class="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 focus:outline-none">
+                <p class="text-[10px] text-slate-400 mt-1">ถ่ายภาพสภาพอุปกรณ์จริงก่อนส่งมอบแก่ผู้ยืม — รูปการคืน (AFTER) จะเพิ่มได้ตอนบันทึกการรับคืนในหน้าจัดการคำร้อง</p>
             </div>
         </div>
 
         <!-- Action Buttons -->
         <div class="flex items-center justify-between pt-2">
-            <a href="{% url 'borrow_app:admin_dashboard' %}" class="px-6 py-2.5 border border-slate-300 text-slate-600 rounded-2xl hover:bg-slate-100 font-semibold text-xs transition-all duration-200 active:scale-95 flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                <span>ย้อนกลับ</span>
+            <a href="{% url 'borrow_app:admin_dashboard' %}"
+                class="px-6 py-2.5 border border-slate-300 text-slate-600 rounded-2xl hover:bg-slate-100 font-semibold text-xs transition active:scale-95 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                ย้อนกลับ
             </a>
-            <button type="submit" class="px-7 py-2.5 bg-swu-red hover:bg-swu-red-dark text-white rounded-2xl font-bold text-xs transition-all duration-200 shadow-md shadow-red-950/20 active:scale-95 flex items-center gap-2">
-                <span>ยืนยันข้อมูล (ถัดไป)</span>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            <button type="submit" id="submit-btn"
+                class="px-7 py-2.5 bg-swu-red hover:bg-swu-red-dark text-white rounded-2xl font-bold text-xs transition shadow-md shadow-red-950/20 active:scale-95 flex items-center gap-2">
+                <span>บันทึกคำร้อง</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
             </button>
         </div>
     </form>
 
-    <!-- Footer Copyright -->
     <div class="text-center text-xs text-slate-400 pt-4 font-medium">
         © 2026 Srinakharinwirot University. All rights reserved.
     </div>
@@ -270,93 +214,84 @@
 (function () {
     'use strict';
 
-    document.addEventListener('DOMContentLoaded', function () {
+    // ---- Date constraint ----
+    const startInput = document.getElementById('start_date');
+    const endInput   = document.getElementById('end_date');
 
-        const searchInput = document.getElementById('equipment-search');
-        const dropdown = document.getElementById('equipment-dropdown');
-        const options = document.querySelectorAll('.equipment-option');
-        const noResult = document.getElementById('equipment-no-result');
+    function updateEndMin() {
+        if (startInput.value) {
+            endInput.min = startInput.value;
+            if (endInput.value && endInput.value < startInput.value) {
+                endInput.value = startInput.value;
+            }
+        }
+    }
+    startInput.addEventListener('change', updateEndMin);
+    updateEndMin();
 
-        const selectedEquipment = document.getElementById('selected-equipment');
-        const selectedEquipmentText = document.getElementById('selected-equipment-text');
-        const removeEquipment = document.getElementById('remove-equipment');
-        const equipmentId = document.getElementById('equipment-id');
+    // ---- Equipment group toggle ----
+    window.toggleGroup = function (btn) {
+        const items   = btn.nextElementSibling;
+        const chevron = btn.querySelector('.group-chevron');
+        items.classList.toggle('hidden');
+        chevron.style.transform = items.classList.contains('hidden') ? 'rotate(-90deg)' : '';
+    };
 
-        if (!searchInput || !dropdown || !equipmentId) {
+    // ---- Search filter ----
+    document.getElementById('eq-search').addEventListener('input', function () {
+        const kw = this.value.trim().toLowerCase();
+        document.querySelectorAll('.eq-group').forEach(function (group) {
+            let groupVisible = false;
+            group.querySelectorAll('.eq-item').forEach(function (item) {
+                const match = !kw
+                    || item.dataset.name.includes(kw)
+                    || item.dataset.code.includes(kw);
+                item.style.display = match ? '' : 'none';
+                if (match) groupVisible = true;
+            });
+            group.style.display = groupVisible ? '' : 'none';
+            // เปิด group อัตโนมัติเมื่อค้นหา
+            if (kw && groupVisible) {
+                group.querySelector('.eq-group-items').classList.remove('hidden');
+            }
+        });
+    });
+
+    // ---- Selected summary ----
+    function updateSummary() {
+        const checked = document.querySelectorAll('input[name="equipment_ids"]:checked');
+        const summary = document.getElementById('selected-summary');
+        const tags    = document.getElementById('selected-tags');
+        const count   = document.getElementById('selected-count');
+
+        if (checked.length === 0) {
+            summary.classList.add('hidden');
             return;
         }
-
-        searchInput.addEventListener('focus', function () {
-            dropdown.classList.remove('hidden');
-            filterEquipment();
+        summary.classList.remove('hidden');
+        count.textContent = checked.length + ' รายการ';
+        tags.innerHTML = '';
+        checked.forEach(function (cb) {
+            const label = cb.closest('label');
+            const name  = label.querySelector('.text-xs.font-semibold').textContent.trim();
+            const tag   = document.createElement('span');
+            tag.className = 'inline-flex items-center gap-1 bg-red-50 border border-red-200 text-swu-red text-[11px] font-semibold px-2.5 py-1 rounded-xl';
+            tag.textContent = name;
+            tags.appendChild(tag);
         });
+    }
 
-        searchInput.addEventListener('input', function () {
-            filterEquipment();
-        });
+    document.querySelectorAll('input[name="equipment_ids"]').forEach(function (cb) {
+        cb.addEventListener('change', updateSummary);
+    });
 
-        function filterEquipment() {
-            const keyword = searchInput.value.trim().toLowerCase();
-            let found = 0;
-
-            options.forEach(function (option) {
-                const name = (option.dataset.name || '').toLowerCase();
-                const code = (option.dataset.code || '').toLowerCase();
-
-                const match = name.includes(keyword) || code.includes(keyword);
-
-                if (match) {
-                    option.classList.remove('hidden');
-                    found++;
-                } else {
-                    option.classList.add('hidden');
-                }
-            });
-
-            if (found === 0) {
-                noResult.classList.remove('hidden');
-            } else {
-                noResult.classList.add('hidden');
-            }
-
-            dropdown.classList.remove('hidden');
+    // ---- Validate before submit ----
+    document.getElementById('manual-form').addEventListener('submit', function (e) {
+        const checked = document.querySelectorAll('input[name="equipment_ids"]:checked');
+        if (checked.length === 0) {
+            e.preventDefault();
+            alert('กรุณาเลือกอุปกรณ์อย่างน้อย 1 รายการ');
         }
-
-        options.forEach(function (option) {
-            option.addEventListener('click', function () {
-                const id = this.dataset.id;
-                const name = this.dataset.name;
-                const code = this.dataset.code;
-
-                equipmentId.value = id;
-                selectedEquipmentText.textContent = name + (code ? ' (' + code + ')' : '');
-                selectedEquipment.classList.remove('hidden');
-
-                searchInput.value = '';
-                dropdown.classList.add('hidden');
-
-                options.forEach(function (item) {
-                    item.classList.remove('hidden');
-                });
-            });
-        });
-
-        if (removeEquipment) {
-            removeEquipment.addEventListener('click', function () {
-                equipmentId.value = '';
-                selectedEquipment.classList.add('hidden');
-                selectedEquipmentText.textContent = '';
-                searchInput.value = '';
-                searchInput.focus();
-            });
-        }
-
-        document.addEventListener('click', function (event) {
-            if (!searchInput.contains(event.target) && !dropdown.contains(event.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-
     });
 
 })();

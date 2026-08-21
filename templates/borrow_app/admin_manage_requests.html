@@ -416,6 +416,7 @@
                             <th class="p-4">รายการอุปกรณ์</th>
                             <th class="p-4">ช่วงเวลาการยืม</th>
                             <th class="p-4">สถานะ</th>
+                            <th class="p-4 text-center">การจัดการ</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -459,10 +460,99 @@
                                 </span>
                                 {% endif %}
                             </td>
+                            <td class="p-4 text-center">
+                                <button type="button" onclick="toggleAdminReturn({{ req.id }})"
+                                    class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-2xl shadow-sm transition active:scale-95 inline-flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    <span>บันทึกการคืน</span>
+                                </button>
+                            </td>
                         </tr>
+
+                        <!-- Drawer: Admin บันทึกการคืนโดยตรง -->
+                        <tr id="admin-return-{{ req.id }}" class="hidden bg-violet-50/40 border-y-2 border-violet-200">
+                            <td colspan="6" class="p-4 sm:p-6">
+                                <form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded-3xl border border-violet-200 shadow-lg space-y-5">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="request_id" value="{{ req.id }}">
+                                    <input type="hidden" name="action" value="admin_return">
+
+                                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="px-3 py-1 bg-violet-100 text-violet-800 rounded-full text-xs font-bold">📦 บันทึกการรับคืนอุปกรณ์</span>
+                                            <span class="text-xs font-mono font-bold text-slate-700">คำร้อง #{{ req.request_number }}</span>
+                                        </div>
+                                        <span class="text-xs text-slate-400 font-medium">ผู้ยืม: {{ req.user.get_full_name|default:req.user.username }}</span>
+                                    </div>
+
+                                    <!-- เลือกรายการที่จะคืน + สภาพ -->
+                                    <div class="space-y-2.5">
+                                        <label class="block text-xs font-bold text-slate-700">เลือกรายการที่คืนและระบุสภาพ</label>
+                                        {% for item in req.items.all %}
+                                        {% if item.return_status == 'ยังไม่คืน' %}
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-slate-50/70 rounded-2xl border border-slate-200">
+                                            <div class="flex items-center gap-2.5">
+                                                <input type="checkbox" name="return_item_ids" value="{{ item.id }}"
+                                                    id="item-{{ req.id }}-{{ item.id }}" checked
+                                                    class="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500">
+                                                <label for="item-{{ req.id }}-{{ item.id }}" class="font-bold text-slate-800 text-xs cursor-pointer">
+                                                    {{ item.equipment.name|default:item.item_name }}
+                                                    {% if item.equipment.code %}
+                                                    <span class="font-mono text-slate-400">({{ item.equipment.code }})</span>
+                                                    {% endif %}
+                                                    <span class="ml-1 font-bold text-violet-700 bg-violet-50 border border-violet-100 px-1.5 py-0.5 rounded-md text-[10px]">x{{ item.quantity }}</span>
+                                                </label>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs text-slate-500 font-medium">สภาพ:</span>
+                                                <select name="return_condition_{{ item.id }}"
+                                                    class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs bg-white font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500">
+                                                    <option value="ปกติ">✅ ปกติ (สมบูรณ์)</option>
+                                                    <option value="ชำรุด">⚠️ ชำรุด (ต้องส่งซ่อม)</option>
+                                                    <option value="สูญหาย">❌ สูญหาย</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% empty %}
+                                        <p class="text-xs text-slate-400 text-center py-4">ไม่มีรายการที่รอคืน</p>
+                                        {% endfor %}
+                                    </div>
+
+                                    <!-- หมายเหตุ + รูป AFTER -->
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">หมายเหตุ (ถ้ามี)</label>
+                                            <textarea name="return_comment" rows="2" maxlength="500"
+                                                class="w-full rounded-2xl border border-slate-200 p-3 text-xs text-slate-800 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all resize-none"
+                                                placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)..."></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">📸 รูปอุปกรณ์หลังรับคืน (AFTER)</label>
+                                            <input type="file" name="return_image" accept="image/png, image/jpeg, image/webp, image/heic"
+                                                class="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 focus:outline-none">
+                                            <p class="text-[10px] text-slate-400 mt-1">ถ่ายภาพสภาพอุปกรณ์หลังรับคืน</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                                        <button type="button" onclick="toggleAdminReturn({{ req.id }})"
+                                            class="px-5 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition">
+                                            ยกเลิก
+                                        </button>
+                                        <button type="submit"
+                                            class="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-xs font-bold shadow-sm transition active:scale-95 flex items-center gap-1.5">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                            <span>ยืนยันบันทึกการคืน</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="p-12 text-center text-slate-400 font-medium">ไม่มีรายการคำร้องที่อยู่ระหว่างการใช้งาน</td>
+                            <td colspan="6" class="p-12 text-center text-slate-400 font-medium">ไม่มีรายการคำร้องที่อยู่ระหว่างการใช้งาน</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -482,6 +572,11 @@
 
 {% block extra_scripts %}
 <script>
+function toggleAdminReturn(reqId) {
+    const panel = document.getElementById('admin-return-' + reqId);
+    if (panel) panel.classList.toggle('hidden');
+}
+
 function toggleDetail(reqId) {
     const panel = document.getElementById('detail-' + reqId);
     if (panel) panel.classList.toggle('hidden');
