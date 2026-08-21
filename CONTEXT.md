@@ -247,3 +247,4 @@ SSMS_DB_PORT=
 - SSMS connection อาจ timeout ได้ — views ทุกตัวที่ใช้ SSMS ต้องมี try-except fallback ไปดึงข้อมูลจาก local DB
 - ระวัง `assetNoMain` จาก SSMS มาเป็น float string เช่น `"12345.0"` — ต้องผ่าน `_clean_asset_no()` เสมอ
 - Tailwind CSS ใช้แบบ CDN (ไม่มี build step) — ถ้าต้องการ custom config ต้องเพิ่ม `<script>` block ใน base.html
+- ถ้าแก้ไขหรือทำอะไรไปแล้วให้อัพเดทข้อมูลในไฟล์นี้ด้วย
