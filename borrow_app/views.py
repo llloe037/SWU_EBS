@@ -1461,29 +1461,7 @@ def equipment_manage_view(request):
     if request.method == "POST":
         action = request.POST.get("action")
 
-        if action == "add":
-            main_no = request.POST.get("asset_no_main", "").strip()
-            sub_no = request.POST.get("asset_no_sub", "0001").strip()
-            code = request.POST.get("code") or f"{main_no}-{sub_no}"
-            total_qty = int(request.POST.get("total_quantity", 1))
-
-            Equipment.objects.create(
-                name=request.POST.get("name"),
-                code=code,
-                category=request.POST.get("category"),
-                status=request.POST.get("status", "พร้อมให้ยืม"),
-                asset_no_main=main_no,
-                asset_no_sub=sub_no,
-                inventory_no=request.POST.get("inventory_no", ""),
-                holder_name=request.POST.get("holder_name", ""),
-                holder_department=request.POST.get("holder_department", ""),
-                total_quantity=total_qty,
-                available_quantity=total_qty,
-                image=request.FILES.get("image"),
-            )
-            return redirect("borrow_app:equipment_manage")
-
-        elif action == "edit":
+        if action == "edit":
             equipment_id = request.POST.get("equipment_id")
             eq = get_object_or_404(Equipment, id=equipment_id)
 
