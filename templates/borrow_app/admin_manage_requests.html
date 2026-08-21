@@ -32,6 +32,7 @@
         </form>
     </div>
 
+    <div id="requests-content">
     {% if selected_status == 'all' %}
     <!-- Full Overview Table for 'all' -->
     <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
@@ -569,6 +570,7 @@
         {% endif %}
     </div>
     {% endif %}
+    </div>
 
     <!-- Footer Copyright -->
     <div class="text-center text-xs text-slate-400 pt-4 font-medium">
@@ -606,5 +608,51 @@ function validateApproval(form) {
     }
     return true;
 }
+
+// --- Auto-refresh (polling) ---------------------------------------------
+// Refreshes the requests table every 5 seconds without a full page reload.
+// Skipped while an admin panel is open or the search box is focused, so it
+// never yanks the page out from under someone mid-review.
+(function () {
+    const POLL_INTERVAL_MS = 5000;
+    const container = document.getElementById('requests-content');
+    if (!container) return;
+
+    function isAnyPanelOpen() {
+        const panels = document.querySelectorAll(
+            '[id^="detail-"], [id^="admin-return-"], [id^="return-inspection-"]'
+        );
+        for (const panel of panels) {
+            if (!panel.classList.contains('hidden')) return true;
+        }
+        return false;
+    }
+
+    function isSearchFocused() {
+        const active = document.activeElement;
+        return active && active.tagName === 'INPUT' && active.name === 'q';
+    }
+
+    async function refresh() {
+        if (isAnyPanelOpen() || isSearchFocused()) return;
+        try {
+            const res = await fetch(window.location.href, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) return;
+            const html = await res.text();
+            const parsed = new DOMParser().parseFromString(html, 'text/html');
+            const newContent = parsed.getElementById('requests-content');
+            if (newContent) {
+                container.innerHTML = newContent.innerHTML;
+            }
+        } catch (err) {
+            // Silently ignore network hiccups; next tick will retry.
+            console.warn('Auto-refresh failed:', err);
+        }
+    }
+
+    setInterval(refresh, POLL_INTERVAL_MS);
+})();
 </script>
 {% endblock %}
