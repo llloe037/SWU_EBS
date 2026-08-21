@@ -1343,31 +1343,83 @@ def admin_manual_request_view(request):
         messages.success(request, f"สร้างคำร้อง {req_num} เรียบร้อยแล้ว")
         return redirect("borrow_app:admin_manage_requests")
 
-    # ส่ง EquipmentGroup + equipments แบบจัดกลุ่ม (เหมือน Local DB fallback ของ home)
-    from django.db.models import Sum
-    groups = (
-        EquipmentGroup.objects
-        .prefetch_related("equipments")
-        .filter(
-            equipments__status__in=["พร้อมให้ยืม", "พร้อมใช้งาน"],
-            equipments__available_quantity__gt=0,
+    # ดึงข้อมูลอุปกรณ์แบบจัดกลุ่มเหมือนหน้า home ของ User
+    # SSMS path (primary) → fetch_ssms_grouped_equipments, fallback → Local DB
+    grouped_equipments = None
+    categories = []
+    try:
+        categories, grouped_list = fetch_ssms_grouped_equipments()
+        grouped_equipments = [
+            item for item in grouped_list if item.get("available_count", 0) > 0
+        ]
+    except Exception:
+        categories = list(
+            EquipmentGroup.objects.values_list("account_determ", flat=True).distinct()
         )
-        .annotate(
-            available_count=Sum(
-                "equipments__available_quantity",
-                filter=Q(
-                    equipments__status__in=["พร้อมให้ยืม", "พร้อมใช้งาน"]
+
+    if grouped_equipments is None:
+        # Local DB fallback
+        from django.db.models import Sum as _Sum
+        groups_qs = (
+            EquipmentGroup.objects
+            .annotate(
+                available_count=_Sum(
+                    "equipments__available_quantity",
+                    filter=Q(equipments__status__in=["พร้อมให้ยืม", "พร้อมใช้งาน"]),
                 ),
+                total_count=_Sum("equipments__total_quantity"),
             )
+            .filter(available_count__gt=0)
+            .order_by("account_determ", "asset_description")
         )
-        .distinct()
-        .order_by("account_determ", "asset_description")
-    )
+        grouped_equipments = [
+            {
+                "id": str(g.id),
+                "account_determ": g.account_determ,
+                "asset_description": g.asset_description,
+                "asset_no_main": None,
+                "is_bundle": False,
+                "available_count": g.available_count or 0,
+                "total_count": g.total_count or 0,
+                "images": [g.image.url] if g.image else [],
+            }
+            for g in groups_qs
+        ]
+
+    # แนบ Local DB equipment list เข้าแต่ละกลุ่ม เพื่อให้ template เลือกชิ้นจริงได้
+    available_statuses = ["พร้อมให้ยืม", "พร้อมใช้งาน"]
+    for item in grouped_equipments:
+        if item.get("is_bundle") and item.get("asset_no_main"):
+            # Bundle → filter ด้วย asset_no_main ของชุดนั้น เพื่อให้ได้เฉพาะชิ้นที่อยู่ในชุดเดียวกัน
+            item["local_equipments"] = list(
+                Equipment.objects.filter(
+                    asset_no_main=item["asset_no_main"],
+                    status__in=available_statuses,
+                    available_quantity__gt=0,
+                ).values("id", "name", "code", "available_quantity", "is_bundle")
+                .order_by("asset_no_sub")
+            )
+        else:
+            # Single → filter ด้วย category + name ตรงๆ
+            item["local_equipments"] = list(
+                Equipment.objects.filter(
+                    category=item["account_determ"],
+                    name=item["asset_description"],
+                    status__in=available_statuses,
+                    available_quantity__gt=0,
+                ).values("id", "name", "code", "available_quantity", "is_bundle")
+                .order_by("code")
+            )
+
     today = datetime.now().strftime("%Y-%m-%d")
     return render(
         request,
         "borrow_app/admin_manual_request.html",
-        {"groups": groups, "today": today},
+        {
+            "grouped_equipments": grouped_equipments,
+            "categories": categories,
+            "today": today,
+        },
     )
 
 
