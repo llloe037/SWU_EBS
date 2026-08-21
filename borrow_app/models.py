@@ -398,7 +398,7 @@ class BorrowRequest(models.Model):
         if end_date is None:
             return self.status
 
-        if today > end_date:
+        if today >= end_date:
             self.status = "เกินกำหนด"
             self.save(update_fields=["status"])
 

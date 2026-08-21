@@ -1198,35 +1198,53 @@ def admin_manage_requests_view(request):
         return redirect("borrow_app:admin_manage_requests")
 
     selected_status = request.GET.get("status", "")
+    search_q = request.GET.get("q", "").strip()
 
     # support 'all' to show every block
     show_all = selected_status == "all" or selected_status == ""
 
+    def _apply_search(qs):
+        if not search_q:
+            return qs
+        return qs.filter(
+            Q(request_number__icontains=search_q)
+            | Q(user__username__icontains=search_q)
+            | Q(user__first_name__icontains=search_q)
+            | Q(user__last_name__icontains=search_q)
+        )
+
     if show_all or selected_status == "รอการอนุมัติ":
-        requests_list = BorrowRequest.objects.filter(status="รอการอนุมัติ").order_by(
-            "-created_at"
+        requests_list = _apply_search(
+            BorrowRequest.objects.filter(status="รอการอนุมัติ").order_by("-created_at")
         )
     else:
         requests_list = BorrowRequest.objects.none()
 
-    if show_all or selected_status == "อนุมัติ":
-        active_requests = BorrowRequest.objects.filter(status="อนุมัติ").order_by(
-            "-created_at"
+    # รวม "เกินกำหนด" เข้า section อนุมัติแล้ว เพื่อให้ admin เห็นและดำเนินการได้
+    if show_all or selected_status in ("อนุมัติ", "เกินกำหนด"):
+        active_requests = _apply_search(
+            BorrowRequest.objects.filter(
+                status__in=["อนุมัติ", "เกินกำหนด"]
+            ).order_by("-created_at")
         )
     else:
         active_requests = BorrowRequest.objects.none()
 
     if show_all or selected_status == "รอตรวจสอบการคืน":
-        return_requests = BorrowRequest.objects.filter(
-            status="รอตรวจสอบการคืน"
-        ).order_by("-created_at")
+        return_requests = _apply_search(
+            BorrowRequest.objects.filter(
+                status="รอตรวจสอบการคืน"
+            ).order_by("-created_at")
+        )
     else:
         return_requests = BorrowRequest.objects.none()
 
     # when 'all' requested, pass full list for a single-table overview
     all_requests = None
     if selected_status == "all":
-        all_requests = BorrowRequest.objects.all().order_by("-created_at")
+        all_requests = _apply_search(
+            BorrowRequest.objects.all().order_by("-created_at")
+        )
 
     return render(
         request,
@@ -1237,6 +1255,7 @@ def admin_manage_requests_view(request):
             "return_requests": return_requests,
             "all_requests": all_requests,
             "selected_status": selected_status,
+            "search_q": search_q,
         },
     )
 
