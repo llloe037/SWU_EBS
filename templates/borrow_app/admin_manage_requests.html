@@ -393,17 +393,19 @@
         </div>
         {% endif %}
 
-        {% if not selected_status or selected_status == 'อนุมัติ' or selected_status == 'all' %}
-        <!-- 3. Section: คำร้องที่อนุมัติแล้ว -->
+        {% if not selected_status or selected_status == 'อนุมัติ' or selected_status == 'เกินกำหนด' or selected_status == 'all' %}
+        <!-- 3. Section: คำร้องที่อนุมัติแล้ว (รวม เกินกำหนด) -->
         <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
             <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                 <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                     <span>✅</span>
-                    <span>คำร้องที่อนุมัติแล้ว (อยู่ระหว่างใช้งาน)</span>
+                    <span>คำร้องที่อนุมัติแล้ว (อยู่ระหว่างใช้งาน / เกินกำหนด)</span>
                 </h3>
-                <span class="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-                    {{ active_requests|length }} รายการ
-                </span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                        ทั้งหมด {{ active_requests|length }} รายการ
+                    </span>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
@@ -418,7 +420,7 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         {% for req in active_requests %}
-                        <tr class="hover:bg-slate-50/80 transition-colors">
+                        <tr class="{% if req.status == 'เกินกำหนด' %}bg-rose-50/30 hover:bg-rose-50/60{% else %}hover:bg-slate-50/80{% endif %} transition-colors">
                             <td class="p-4 font-mono font-bold text-slate-900">
                                 <div>{{ req.request_number }}</div>
                                 <div class="text-[10px] font-normal text-slate-400 mt-0.5 font-mono">{{ req.created_at|date:"j M Y " }}</div>
@@ -439,14 +441,23 @@
                                     {% endfor %}
                                 </div>
                             </td>
-                            <td class="p-4 text-slate-600 font-mono">
+                            <td class="p-4 font-mono">
                                 <div class="font-bold text-slate-800">{{ req.start_datetime|date:"j M Y " }}</div>
-                                <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime|date:"j M Y " }}</div>
+                                <div class="text-[11px] {% if req.status == 'เกินกำหนด' %}text-rose-500 font-bold{% else %}text-slate-400{% endif %}">
+                                    ถึง {{ req.end_datetime|date:"j M Y " }}
+                                    {% if req.status == 'เกินกำหนด' %} ⚠️{% endif %}
+                                </div>
                             </td>
                             <td class="p-4">
+                                {% if req.status == 'เกินกำหนด' %}
+                                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                    ⏰ เกินกำหนด
+                                </span>
+                                {% else %}
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                     {{ req.status }}
                                 </span>
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}
