@@ -1461,33 +1461,28 @@ def equipment_manage_view(request):
     if request.method == "POST":
         action = request.POST.get("action")
 
-        if action == "edit":
+        if action == "change_status":
             equipment_id = request.POST.get("equipment_id")
-            eq = get_object_or_404(Equipment, id=equipment_id)
+            new_status = request.POST.get("new_status", "").strip()
+            allowed_statuses = ["พร้อมให้ยืม", "อยู่ระหว่างซ่อม", "ชำรุด", "สูญหาย"]
 
-            eq.name = request.POST.get("name")
-            eq.code = request.POST.get("code")
-            eq.category = request.POST.get("category")
-            eq.status = request.POST.get("status")
-            eq.asset_no_main = request.POST.get("asset_no_main", "")
-            eq.asset_no_sub = request.POST.get("asset_no_sub", "")
-            eq.inventory_no = request.POST.get("inventory_no", "")
-            eq.holder_name = request.POST.get("holder_name", "")
-            eq.holder_department = request.POST.get("holder_department", "")
-
-            if request.POST.get("total_quantity"):
-                eq.total_quantity = int(request.POST.get("total_quantity"))
-
-            if "image" in request.FILES:
-                eq.image = request.FILES["image"]
-
-            eq.save()
-            return redirect("borrow_app:equipment_manage")
-
-        elif action == "delete":
-            equipment_id = request.POST.get("equipment_id")
-            Equipment.objects.filter(id=equipment_id).delete()
-            return redirect("borrow_app:equipment_manage")
+            if new_status in allowed_statuses:
+                eq = get_object_or_404(Equipment, id=equipment_id)
+                # ไม่อนุญาตให้เปลี่ยนสถานะอุปกรณ์ที่กำลังถูกยืมอยู่
+                if eq.status != "กำลังถูกยืม":
+                    old_status = eq.status
+                    eq.status = new_status
+                    # ปรับ available_quantity ให้สอดคล้องกับสถานะใหม่
+                    if new_status == "พร้อมให้ยืม" and old_status in ["ชำรุด", "สูญหาย", "อยู่ระหว่างซ่อม"]:
+                        # restore กลับเต็ม total_quantity
+                        eq.available_quantity = eq.total_quantity
+                    elif new_status in ["ชำรุด", "สูญหาย", "อยู่ระหว่างซ่อม"] and old_status == "พร้อมให้ยืม":
+                        # lock ไม่ให้ยืมได้
+                        eq.available_quantity = 0
+                    eq.save(update_fields=["status", "available_quantity"])
+            return redirect(
+                f"{request.path}?group_id={request.POST.get('group_id', group_id)}"
+            )
 
         elif action == "import_excel":
             excel_file = request.FILES.get("excel_file")
