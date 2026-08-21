@@ -102,7 +102,7 @@ class Equipment(models.Model):
         max_length=150, null=True, blank=True, verbose_name="แหล่งเงิน (fundingSource)"
     )
     amount_posted = models.DecimalField(
-        max_digits=12,
+        max_digits=12, 
         decimal_places=2,
         null=True,
         blank=True,

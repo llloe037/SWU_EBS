@@ -60,9 +60,11 @@
                         <tr>
                             <th class="p-3">เลขที่คำร้อง</th>
                             <th class="p-3">ผู้ขอยืม</th>
+                            <th class="p-3">สถานที่</th>
                             <th class="p-3">รายการอุปกรณ์</th>
                             <th class="p-3">วัตถุประสงค์</th>
                             <th class="p-3">วันที่ยืม - กำหนดส่ง</th>
+                            <th class="p-3">ประเภทการรับ-ส่งคืน</th>
                             <th class="p-3 text-center">การอนุมัติ</th>
                         </tr>
                     </thead>
@@ -75,7 +77,9 @@
                             </td>
                             <td class="p-3">
                                 <div class="font-semibold text-slate-800">{{ req.user.get_full_name|default:req.user.username }}</div>
-                                <div class="text-[11px] text-gray-500">{{ req.location }}</div>
+                            </td>
+                            <td class="p-3 text-gray-700 max-w-[220px] whitespace-normal break-words">
+                                {{ req.location }}
                             </td>
                             <td class="p-3">
                                 {% for item in req.items.all %}
@@ -95,6 +99,11 @@
                                 <div>{{ req.start_datetime }}</div>
                                 <div class="text-[11px] text-gray-500">ถึง {{ req.end_datetime }}</div>
                             </td>
+                            <td class="p-3">
+                                <span class="inline-flex items-center px-2 py-1 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-medium">
+                                    {{ req.pickup_method|default:"-" }}
+                                </span>
+                            </td>
                             <td class="p-3 text-center">
                                 <button type="button" onclick="toggleDetail({{ req.id }})" class="px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded hover:bg-amber-600 transition">
                                     พิจารณา
@@ -102,7 +111,7 @@
                             </td>
                         </tr>
                         <tr id="detail-{{ req.id }}" class="hidden bg-amber-50">
-                            <td colspan="6" class="px-4 py-4 border-t border-amber-200">
+                            <td colspan="8" class="px-4 py-4 border-t border-amber-200">
                                 <form method="POST" enctype="multipart/form-data">
                                     {% csrf_token %}
                                     <input type="hidden" name="request_id" value="{{ req.id }}">
@@ -159,7 +168,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="p-6 text-center text-gray-400">ไม่มีคำร้องที่รอการพิจารณา</td>
+                            <td colspan="8" class="p-6 text-center text-gray-400">ไม่มีคำร้องที่รอการพิจารณา</td>
                         </tr>
                         {% endfor %}
                     </tbody>
