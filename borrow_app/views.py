@@ -1305,7 +1305,15 @@ def admin_manual_request_view(request):
         selected_equipment_ids = request.POST.getlist("equipment_ids")
 
         user = User.objects.filter(username=borrower_name).first() or request.user
-        req_num = f"REQ-{uuid.uuid4().hex[:8].upper()}"
+
+        # ใช้ format เดียวกับ User: YY/NNNN (เลขปี พ.ศ. 2 หลักท้าย + running number)
+        thai_year_short = str(datetime.now().year + 543)[-2:]
+        year_prefix = f"{thai_year_short}/"
+        count_this_year = (
+            BorrowRequest.objects.filter(request_number__startswith=year_prefix).count()
+            + 1
+        )
+        req_num = f"{year_prefix}{count_this_year:04d}"
 
         borrow_request = BorrowRequest.objects.create(
             request_number=req_num,
