@@ -1,0 +1,5 @@
+# SWU ERP Project Rules
+- Framework: Django 6.x + Tailwind CSS
+- Cloudinary Storage Root: Always upload images inside 'swu_erp/' subfolders
+- Code Style: Maintain existing variable names and Context processors in views/templates
+- Language: Respond in Thai, maintain clean and atomic database transactions (@transaction.atomic)
