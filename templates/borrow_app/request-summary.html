@@ -107,7 +107,7 @@
             </div>
             <div>
                 <span class="text-gray-500">กำหนดส่งคืนวันที่:</span>
-                <p class="font-semibold text-gray-800 mt-0.5">{{ details.end_datetime }}</p>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ details.end_datetime|slice:":16"|default:"-" }}</p>
             </div>
             <div>
                 <span class="text-gray-500">ประเภทการรับ-ส่งคืน:</span>

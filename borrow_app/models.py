@@ -173,7 +173,7 @@ class BorrowRequest(models.Model):
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="ผู้ขอยืม")
     start_datetime = models.DateField(null=True, blank=True, verbose_name="วันที่ยืม")
-    end_datetime = models.DateField(null=True, blank=True, verbose_name="กำหนดส่งคืน")
+    end_datetime = models.DateTimeField(null=True, blank=True, verbose_name="กำหนดส่งคืน")
     purpose = models.TextField(verbose_name="วัตถุประสงค์")
     location = models.CharField(max_length=255, verbose_name="สถานที่นำไปใช้")
     pickup_method = models.CharField(
@@ -385,20 +385,27 @@ class BorrowRequest(models.Model):
         )
 
     def refresh_status(self, now=None):
-        if self.status not in ["อนุมัติ", "รอตรวจสอบการคืน", "คืนไม่ครบ"]:
+        if self.status not in ["อนุมัติ", "คืนไม่ครบ"]:
+            # "รอตรวจสอบการคืน" ไม่เปลี่ยนเป็นเกินกำหนด — User ส่งคืนไปแล้ว รอ Admin ตรวจ
             return self.status
 
         if not self.end_datetime:
             return self.status
 
-        today = (
-            (now.date() if hasattr(now, "date") else now) if now else dt.date.today()
-        )
-        end_date = self.end_datetime if isinstance(self.end_datetime, dt.date) else None
-        if end_date is None:
-            return self.status
+        from django.utils import timezone as tz
 
-        if today >= end_date:
+        now = now or tz.now()
+        # รองรับกรณีส่ง date หรือ datetime เข้ามา
+        if not hasattr(now, "hour"):
+            # เป็น date object — แปลงให้เป็น datetime ที่ end of day
+            now = tz.make_aware(dt.datetime.combine(now, dt.time.max))
+
+        end_dt = self.end_datetime
+        # ถ้า end_datetime เป็น naive datetime ให้ใช้ tzinfo ของ now
+        if tz.is_naive(end_dt):
+            end_dt = tz.make_aware(end_dt)
+
+        if now > end_dt:
             self.status = "เกินกำหนด"
             self.save(update_fields=["status"])
 
@@ -504,7 +511,7 @@ class BorrowItem(models.Model):
     )
 
     def available_equipment_options(self):
-        filters = Q(status__in=["พร้อมให้ยืม", "พร้อมใช้งาน"], available_quantity__gt=0)
+        filters = Q(status__in=["พร้อมให้ยืม", "พร้อมใช้งาน", "กำลังถูกยืม"], available_quantity__gt=0)
         if self.requested_category:
             filters &= Q(category=self.requested_category) | Q(
                 group__account_determ=self.requested_category

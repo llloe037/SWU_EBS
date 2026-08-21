@@ -154,7 +154,7 @@
                             </td>
                             <td class="p-4 text-slate-600 font-mono">
                                 <div class="font-bold text-slate-800">{{ req.start_datetime|date:"j M Y " }}</div>
-                                <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime|date:"j M Y " }}</div>
+                                <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime|date:"j M Y H:i" }}</div>
                             </td>
                             <td class="p-3">
                                 <span class="inline-flex items-center px-2 py-1 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-medium">
@@ -309,7 +309,7 @@
                             </td>
                             <td class="p-4 text-slate-600 font-mono">
                                 <div class="font-bold text-slate-800">{{ req.start_datetime|date:"j M Y " }}</div>
-                                <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime|date:"j M Y " }}</div>
+                                <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime|date:"j M Y H:i" }}</div>
                             </td>
                             <td class="p-4">
                                 <div class="text-slate-700 font-medium">{{ req.return_note|default:'ไม่มีหมายเหตุ' }}</div>
@@ -453,7 +453,7 @@
                             <td class="p-4 font-mono">
                                 <div class="font-bold text-slate-800">{{ req.start_datetime|date:"j M Y " }}</div>
                                 <div class="text-[11px] {% if req.status == 'เกินกำหนด' %}text-rose-500 font-bold{% else %}text-slate-400{% endif %}">
-                                    ถึง {{ req.end_datetime|date:"j M Y " }}
+                                    ถึง {{ req.end_datetime|date:"j M Y H:i" }}
                                     {% if req.status == 'เกินกำหนด' %} ⚠️{% endif %}
                                 </div>
                             </td>

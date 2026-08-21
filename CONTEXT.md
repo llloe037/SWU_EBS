@@ -22,7 +22,7 @@
 - **วงจรคำร้องครบถ้วน**: สร้างคำร้อง → อนุมัติ/ปฏิเสธ → ส่งมอบ → คืน → ตรวจรับ
 - **ระบบ Bundle**: ตรวจจับและแสดงครุภัณฑ์ที่เป็นชุดจาก SSMS โดยอัตโนมัติ
 - **Per-Item Return Tracking**: ผู้ใช้คืนได้ทีละชิ้น, Admin ตรวจสภาพแต่ละชิ้น (ปกติ/ชำรุด/สูญหาย)
-- **Overdue Detection**: `refresh_status()` ตรวจสอบวันเกินกำหนดอัตโนมัติ และเพิ่ม section "เกินกำหนด" ใน Admin
+- **Overdue Detection**: `refresh_status()` ตรวจสอบวันเกินกำหนดอัตโนมัติ และเพิ่ม section "เกินกำหนด" ใน Admin (เปลี่ยนสถานะเมื่อ `today > end_date` เท่านั้น — วันที่ครบกำหนดยังคืนได้ตลอดวัน)
 - **Admin Manual Request**: Admin สร้างคำร้องแทน User ได้ (กรณีฉุกเฉิน) Status ข้ามไปเป็น `อนุมัติ` ทันที
 - **Notification System**: ระบบแจ้งเตือน In-App เมื่ออนุมัติ/ปฏิเสธ/คืนสำเร็จ
 
@@ -38,6 +38,9 @@
 - **Fix start date error ใน request form** — แก้ bug วันที่เริ่มต้นใน Request Form
 - **Fix qty bug on cancel button** — แก้ bug จำนวนเมื่อกด Cancel
 - **Fix users retry incomplete returns** — ผู้ใช้ที่ติดค้างสถานะ "คืนไม่ครบ" สามารถกลับมาส่งคืนซ้ำได้
+- **Fix overdue trigger on due date** — แก้ `refresh_status()` จาก `today >= end_date` เป็น `today > end_date` เพื่อให้วันที่ครบกำหนดยังคืนได้ตลอดวัน
+- **Fix end_datetime to DateTimeField** — เปลี่ยน `end_datetime` จาก `DateField` เป็น `DateTimeField` เพิ่ม `_parse_datetime()` helper และแก้ `refresh_status()` ให้เปรียบเทียบ datetime เต็ม เพื่อให้ overdue ทำงานถูกต้องตามเวลาที่ User กำหนด
+- **Fix return form no items (overdue)** — แก้ `available_equipment_options()` ให้รวม status `"กำลังถูกยืม"` เพื่อให้อุปกรณ์ที่กำลังถูกยืมอยู่แสดงในหน้าคืนได้
 
 ### 2.5 Database / Backend
 - **SSMS Sync**: Live sync (`sync_ssms_direct_view`) และ Full sync (`import_ssms` management command)
@@ -113,6 +116,13 @@ Wrap ด้วย `@transaction.atomic` + `try-except cloudinary.exceptions.Erro
 
 ### 3.8 `_clean_asset_no()` Helper
 SSMS ส่งค่า `assetNoMain` เป็น float บางครั้ง (เช่น `"12345.0"`) ต้องตัด `.0` ออกก่อนใช้ในทุก SQL query
+
+### 3.9 Overdue Detection Logic
+- `end_datetime` เป็น **`DateTimeField`** (เก็บวันที่ + เวลา) — User กรอกผ่าน `<input type="datetime-local">`
+- `refresh_status()` เปรียบเทียบ `timezone.now() > end_datetime` แบบ datetime เต็ม
+- Admin Manual Request ใช้ `<input type="date">` ดังนั้น view จะเติม `T23:59` ให้อัตโนมัติ (end of day)
+- `_parse_datetime()` ใน views.py ใช้สำหรับ parse `end_datetime` (คืน aware datetime), `_parse_date()` ยังใช้กับ `start_datetime` (DateField) ตามเดิม
+- `available_equipment_options()` บน BorrowItem รวม status `"กำลังถูกยืม"` ด้วย เพื่อให้อุปกรณ์ที่กำลังถูกยืมอยู่แสดงในหน้าคืนได้ถูกต้อง
 
 ---
 

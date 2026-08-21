@@ -44,6 +44,30 @@ def _parse_date(date_str):
     return None
 
 
+def _parse_datetime(date_str):
+    """แปลง string เป็น aware datetime — ใช้สำหรับ end_datetime (DateTimeField)"""
+    if not date_str:
+        return None
+
+    from django.utils import timezone as tz
+
+    formats = [
+        "%Y-%m-%dT%H:%M",    # จาก <input type="datetime-local">
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d",
+    ]
+
+    for fmt in formats:
+        try:
+            naive_dt = datetime.strptime(str(date_str).strip(), fmt)
+            return tz.make_aware(naive_dt)
+        except (ValueError, TypeError):
+            continue
+
+    return None
+
+
 def _clean_asset_no(val):
     if val is None:
         return ""
@@ -682,7 +706,7 @@ def confirm_request_view(request):
             request_number=new_req_no,
             user=request.user,
             start_datetime=_parse_date(details.get("start_datetime")),
-            end_datetime=_parse_date(details.get("end_datetime")),
+            end_datetime=_parse_datetime(details.get("end_datetime")),
             purpose=details.get("purpose", "-"),
             location=details.get("location", "-"),
             pickup_method=details.get("pickup_method", "-"),
@@ -1001,8 +1025,9 @@ def return_request_view(request, request_id):
     )
 
     # รองรับข้อมูลคำร้อง "คืนไม่ครบ" เดิมที่รายการอาจยังค้างเป็น "รอตรวจรับ"
+    # และรองรับกรณี "เกินกำหนด" ที่ items อาจค้างเป็น "รอตรวจรับ" จากการส่งคืนครั้งก่อน
     returnable_statuses = ["ยังไม่คืน"]
-    if borrow_req.status == "คืนไม่ครบ":
+    if borrow_req.status in ["คืนไม่ครบ", "เกินกำหนด"]:
         returnable_statuses.append("รอตรวจรับ")
 
     if request.method == "POST":
@@ -1319,7 +1344,7 @@ def admin_manual_request_view(request):
             request_number=req_num,
             user=user,
             start_datetime=_parse_date(start_date),
-            end_datetime=_parse_date(end_date),
+            end_datetime=_parse_datetime(end_date + "T23:59") if end_date else None,
             purpose=f"[ผู้ขอยืม: {borrower_name} / สังกัด: {department}] {purpose}",
             location=location or "-",
             pickup_method=pickup_method,
