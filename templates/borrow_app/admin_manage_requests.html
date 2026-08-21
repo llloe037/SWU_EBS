@@ -112,12 +112,14 @@
                 <table class="w-full text-left text-xs">
                     <thead class="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-100 tracking-wider">
                         <tr>
-                            <th class="p-4">เลขที่คำร้อง</th>
-                            <th class="p-4">ผู้ขอยืม</th>
-                            <th class="p-4">รายการอุปกรณ์ที่ขอ</th>
-                            <th class="p-4">วัตถุประสงค์</th>
-                            <th class="p-4">ช่วงเวลาขอยืม</th>
-                            <th class="p-4 text-center">การจัดการ</th>
+                            <th class="p-3">เลขที่คำร้อง</th>
+                            <th class="p-3">ผู้ขอยืม</th>
+                            <th class="p-3">สถานที่</th>
+                            <th class="p-3">รายการอุปกรณ์</th>
+                            <th class="p-3">วัตถุประสงค์</th>
+                            <th class="p-3">วันที่ยืม - กำหนดส่ง</th>
+                            <th class="p-3">ประเภทการรับ-ส่งคืน</th>
+                            <th class="p-3 text-center">การอนุมัติ</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -127,9 +129,11 @@
                                 <div>{{ req.request_number }}</div>
                                 <div class="text-[10px] font-normal text-slate-400 mt-0.5 font-mono">{{ req.created_at|date:"j M Y " }}</div>
                             </td>
-                            <td class="p-4">
-                                <div class="font-bold text-slate-800">{{ req.user.get_full_name|default:req.user.username }}</div>
-                                <div class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">📍 {{ req.location }}</div>
+                            <td class="p-3">
+                                <div class="font-semibold text-slate-800">{{ req.user.get_full_name|default:req.user.username }}</div>
+                            </td>
+                            <td class="p-3 text-gray-700 max-w-[220px] whitespace-normal break-words">
+                                {{ req.location }}
                             </td>
                             <td class="p-4">
                                 <div class="space-y-1.5">
@@ -151,17 +155,20 @@
                                 <div class="font-bold text-slate-800">{{ req.start_datetime|date:"j M Y " }}</div>
                                 <div class="text-[11px] text-slate-400">ถึง {{ req.end_datetime|date:"j M Y " }}</div>
                             </td>
-                            <td class="p-4 text-center">
-                                <button type="button" onclick="toggleDetail({{ req.id }})" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-2xl shadow-sm transition active:scale-95 inline-flex items-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                    <span>พิจารณา</span>
+                            <td class="p-3">
+                                <span class="inline-flex items-center px-2 py-1 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[11px] font-medium">
+                                    {{ req.pickup_method|default:"-" }}
+                                </span>
+                            </td>
+                            <td class="p-3 text-center">
+                                <button type="button" onclick="toggleDetail({{ req.id }})" class="px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded hover:bg-amber-600 transition">
+                                    พิจารณา
                                 </button>
                             </td>
                         </tr>
-                        <!-- Collapsible Drawer Form for Allocation -->
-                        <tr id="detail-{{ req.id }}" class="hidden bg-amber-50/40 border-y-2 border-amber-200">
-                            <td colspan="6" class="p-4 sm:p-6">
-                                <form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded-3xl border border-amber-200 shadow-lg space-y-5">
+                        <tr id="detail-{{ req.id }}" class="hidden bg-amber-50">
+                            <td colspan="8" class="px-4 py-4 border-t border-amber-200">
+                                <form method="POST" enctype="multipart/form-data">
                                     {% csrf_token %}
                                     <input type="hidden" name="request_id" value="{{ req.id }}">
                                     
@@ -237,7 +244,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="p-12 text-center text-slate-400 font-medium">ไม่มีคำร้องที่รอการพิจารณาอนุมัติในขณะนี้</td>
+                            <td colspan="8" class="p-6 text-center text-gray-400">ไม่มีคำร้องที่รอการพิจารณา</td>
                         </tr>
                         {% endfor %}
                     </tbody>
